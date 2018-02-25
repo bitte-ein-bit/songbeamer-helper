@@ -1,0 +1,4 @@
+songspath: F:\Songbeamer\Songs
+aws:
+  awsAccessKeyID: test
+  awsSecretAccessKey: secret

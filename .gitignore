@@ -1,0 +1,6 @@
+public/
+update
+*.old
+*.exe
+build.sh
+songbeamer-helper.yaml
