@@ -26,10 +26,10 @@ type SongArrangement struct {
 	Beat         string              `json:"beat"`
 	Minutes      int                 `json:"length_min,string"`
 	Seconds      int                 `json:"length_sec,string"`
-	Note         string              `json:"note"`
+	Note         string              `json:"note,omitempty"`
 	ModifiedDate string              `json:"modified_date"`
 	ModifiedPID  int                 `json:"modified_pid,string"`
-	Files        map[string]SongFile `json:"files"`
+	Files        map[string]SongFile `json:"files,omitempty"`
 }
 
 // The Song is describing the api response of a Song. It is further defined by one or more Arrangements
@@ -39,7 +39,7 @@ type Song struct {
 	SongcategoryID int                        `json:"songcategory_id,string"`
 	Practice       int                        `json:"practice_yn,string"`
 	Author         string                     `json:"author"`
-	CCLI           int                        `json:"ccli,string"`
+	CCLI           string                     `json:"ccli,omitempty"`
 	Copyright      string                     `json:"copyright"`
 	Note           string                     `json:"note"`
 	ModifiedDate   string                     `json:"modified_date"`
@@ -55,4 +55,9 @@ type songsdata struct {
 type apiResponse struct {
 	Status string    `json:"status"`
 	Data   songsdata `json:"data"`
+}
+
+type addResponse struct {
+	Status string `json:"status"`
+	ID     int    `json:"data,string"`
 }

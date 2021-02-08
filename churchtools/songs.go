@@ -2,17 +2,18 @@ package churchtools
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 )
 
 func getSongs() error {
+	if client == nil {
+		login()
+	}
 	params := make(map[string]string)
 	params["func"] = "getAllSongs"
-	resp := getRequest(churchServiceURL, params)
-	// resp, err:= client.PostForm(churchServiceURL, url.Values{
-	// 	"func": {"getAllSongs"},
-	// })
+	resp := getRequest(churchServiceAjaxURL, params)
 	log.Println(resp.Status)
 	defer resp.Body.Close()
 	data, err := ioutil.ReadAll(resp.Body)
@@ -94,6 +95,58 @@ func getSongs() error {
 
 // Songs returns the Songs as sent by churchservice/getAllSongs endpoint
 func Songs() {
-	login()
 	getSongs()
+}
+
+// AddSong adds a new song to Churchtools
+func AddSong(bezeichnung, author, copyright, ccli, tonality, bpm, beat string) int {
+	if client == nil {
+		login()
+	}
+	params := make(map[string]string)
+	params["func"] = "addNewSong"
+	params["bezeichnung"] = bezeichnung
+	params["author"] = author
+	params["copyright"] = copyright
+	params["ccli"] = ccli
+	params["tonality"] = tonality
+	params["bpm"] = bpm
+	params["beat"] = beat
+	params["songcategory_id"] = "1"
+	params["comments[domain_type]"] = "arrangement"
+	resp := postRequest(churchServiceAjaxURL, params)
+	log.Println(resp.Status)
+	defer resp.Body.Close()
+	data, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	r := addResponse{}
+	jsonErr := json.Unmarshal(data, &r)
+	if jsonErr != nil {
+		log.Fatalf("unable to parse value: %q, error: %s", string(data), jsonErr.Error())
+	}
+	return r.ID
+}
+
+// AddSongFile Upload and attach a file to a ChurchTools song
+func AddSongFile(arrangementID int, filepath string) {
+	if client == nil {
+		login()
+	}
+	url := fmt.Sprintf("https://%s/api/files/song_arrangement/%d", domain, arrangementID)
+	request, err := newfileUploadRequest(url, nil, "files[]", filepath, "text/plain")
+
+	resp, err := client.Do(request)
+	if err != nil {
+		log.Fatal(err)
+	} else {
+		var bodyContent []byte
+		fmt.Println(resp.StatusCode)
+		fmt.Println(resp.Header)
+		resp.Body.Read(bodyContent)
+		resp.Body.Close()
+		fmt.Println(bodyContent)
+	}
 }

@@ -20,7 +20,9 @@ var cmdCTGet = &cobra.Command{
 
 func listSongs() {
 	// churchtools.Login()
-	churchtools.Songs()
+	// churchtools.Songs()
+	// churchtools.AddSong("test1", "jonathan", "", "", "", "", "")
+	churchtools.AddSongFile(73, "songs/All day.sng")
 	// path := viper.GetString("songspath")
 	// log.Printf("Reading songs from %v", path)
 	// files, err := ioutil.ReadDir(path)
