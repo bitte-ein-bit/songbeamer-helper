@@ -1,20 +1,26 @@
 package churchtools
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"net/http/cookiejar"
+	"net/textproto"
 	"net/url"
+	"os"
+	"strings"
 
 	"golang.org/x/net/publicsuffix"
 )
 
 const domain = "lkg-pfuhl.church.tools"
-const loginurl = "https://lkg-pfuhl.church.tools/?q=login/ajax"
-const churchServiceURL = "https://lkg-pfuhl.church.tools/?q=churchservice/ajax"
+
+var basisURL = fmt.Sprintf("https://%s/?q=", domain)
+var churchServiceAjaxURL = "https://lkg-pfuhl.church.tools/?q=churchservice/ajax"
 
 const userid = "2392"
 const token = "23bwRElUXrBXmriaIrMP8vrJAxoIcJH9KJGfTLsEHpusNqnLnnwTBWLLbdjzKilg3Ns0vxZB8SCGATeGc3D8zIgEiqjtpP1VHo64vO9fjFvGcb2wueQETwI8a3w6kWdOoNdR3ZPzm0G50HOczY2AOILkA0fxlb1sboiLPcvNEYuRuCHe3kKe9TFOloFSQLvBrYrRdag0C6qpd3A9YW4XW4byQjsGOKhhPCgoA54nDwHoauLtS8hKD2XdSq9i6sPA"
@@ -37,6 +43,7 @@ func login() {
 	if client == nil {
 		setupClient()
 	}
+	loginurl := fmt.Sprintf("%slogin/ajax", basisURL)
 	resp, err := client.PostForm(loginurl, url.Values{
 		"func":       {"loginWithToken"},
 		"id":         {userid},
@@ -104,4 +111,78 @@ func getRequest(url string, params map[string]string) http.Response {
 	}
 	log.Println(resp.Header)
 	return *resp
+}
+
+func postRequest(url string, params map[string]string) http.Response {
+	if client == nil {
+		log.Fatal("please login first")
+	}
+	req, _ := http.NewRequest("POST", url, nil)
+	if params != nil {
+		q := req.URL.Query()
+		for key, value := range params {
+			q.Add(key, value)
+		}
+		req.URL.RawQuery = q.Encode()
+	}
+	req.Header.Set("Content-type", "application/x-www-form-urlencoded")
+	req.Header.Set("CSRF-Token", getCSRFToken())
+	log.Println(req.Header)
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println(resp.Header)
+	return *resp
+}
+
+var quoteEscaper = strings.NewReplacer("\\", "\\\\", `"`, "\\\"")
+
+func escapeQuotes(s string) string {
+	return quoteEscaper.Replace(s)
+}
+
+// NewfileUploadRequest Creates a new file upload http request with optional extra params
+func newfileUploadRequest(uri string, params map[string]string, paramName, path, contentType string) (*http.Request, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	fileContents, err := ioutil.ReadAll(file)
+	if err != nil {
+		return nil, err
+	}
+	fi, err := file.Stat()
+	if err != nil {
+		return nil, err
+	}
+
+	body := new(bytes.Buffer)
+	writer := multipart.NewWriter(body)
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition",
+		fmt.Sprintf(`form-data; name="%s"; filename="%s"`,
+			escapeQuotes(paramName), escapeQuotes(fi.Name())))
+	h.Set("Content-Type", contentType)
+	part, err := writer.CreatePart(h)
+	if err != nil {
+		return nil, err
+	}
+	part.Write(fileContents)
+
+	for key, val := range params {
+		_ = writer.WriteField(key, val)
+	}
+	err = writer.Close()
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequest("POST", uri, body)
+	req.Header.Set("CSRF-Token", getCSRFToken())
+	req.Header.Add("Content-Type", writer.FormDataContentType())
+	log.Println(req.Header)
+	log.Println(body)
+	return req, err
+
 }
