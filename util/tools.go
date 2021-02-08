@@ -7,7 +7,9 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 
+	"github.com/dimchansky/utfbom"
 	"github.com/igungor/chardet"
 	"golang.org/x/text/encoding/charmap"
 	"golang.org/x/text/transform"
@@ -60,7 +62,7 @@ func File2lines(filePath string) ([]string, error) {
 	}
 	defer f.Close()
 	enc := DetectEncoding(filePath)
-	return LinesFromReader(f, enc)
+	return LinesFromReader(utfbom.SkipOnly(f), enc)
 }
 
 func LinesFromReader(r io.Reader, c *charmap.Charmap) ([]string, error) {
@@ -70,7 +72,11 @@ func LinesFromReader(r io.Reader, c *charmap.Charmap) ([]string, error) {
 	}
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
-		lines = append(lines, scanner.Text())
+		line := scanner.Text()
+		if strings.Contains(line, string('\uFEFF')) {
+			line = strings.Replace(line, string('\uFEFF'), "", 1)
+		}
+		lines = append(lines, line)
 	}
 	if err := scanner.Err(); err != nil {
 		return nil, err

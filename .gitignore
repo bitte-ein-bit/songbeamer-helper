@@ -4,3 +4,5 @@ update
 *.exe
 build.sh
 songbeamer-helper.yaml
+songs/
+songbeamer-helper
