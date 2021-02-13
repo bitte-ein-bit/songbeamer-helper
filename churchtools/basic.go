@@ -21,6 +21,7 @@ const domain = "lkg-pfuhl.church.tools"
 
 var basisURL = fmt.Sprintf("https://%s/?q=", domain)
 var churchServiceAjaxURL = "https://lkg-pfuhl.church.tools/?q=churchservice/ajax"
+var churchServiceFiledownloadURL = "https://lkg-pfuhl.church.tools/?q=churchservice/filedownload"
 
 // These values are injected at build time via -ldflags
 var userid = ""
@@ -114,12 +115,13 @@ func getRequest(url string, params map[string]string) http.Response {
 	return *resp
 }
 
-func postRequest(url string, params map[string]string) http.Response {
+func postRequest(client *http.Client, url string, params map[string]string) http.Response {
 	if client == nil {
 		log.Fatal("please login first")
 	}
 	req, _ := http.NewRequest("POST", url, nil)
 	if params != nil {
+		fmt.Println(params)
 		q := req.URL.Query()
 		for key, value := range params {
 			q.Add(key, value)

@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math"
 )
 
-func getSongs() error {
+// GetSongs returns the Songs as sent by churchservice/getAllSongs endpoint
+func GetSongs() (map[string]Song, error) {
 	if client == nil {
 		login()
 	}
@@ -22,80 +24,16 @@ func getSongs() error {
 		log.Fatal(err)
 	}
 	r := apiResponse{}
-	// data := []byte(`{
-	//     "id": "45",
-	//     "bezeichnung": "Wie weit würd ich gehn",
-	//     "songcategory_id": "0",
-	//     "practice_yn": "0",
-	//     "author": "Arne Kopfermann, Benjamin Heinrich",
-	//     "ccli": "7096862",
-	//     "copyright": "2017 SCM Hänssler, Holzgerlingen (Verwaltet von SCM Hänssler)",
-	//     "note": "",
-	//     "modified_date": "2021-01-31 11:18:06",
-	//     "modified_pid": "279",
-	//     "arrangement": {
-	//       "48": {
-	//         "id": "48",
-	//         "bezeichnung": "Standard-Arrangement",
-	//         "default_yn": "1",
-	//         "tonality": "",
-	//         "bpm": "",
-	//         "beat": "",
-	//         "length_min": "0",
-	//         "length_sec": "0",
-	//         "note": null,
-	//         "modified_date": "2021-01-31 11:18:06",
-	//         "modified_pid": "279",
-	//         "files": {
-	//           "1884": {
-	//             "id": "1884",
-	//             "domain_type": "song_arrangement",
-	//             "domain_id": "48",
-	//             "bezeichnung": "Wie weit würd ich gehn.txt",
-	//             "filename": "04fa8dc5201c3b7c7860e6d946f6b9be.txt",
-	//             "showonlywheneditable_yn": "0",
-	//             "securitylevel_id": null,
-	//             "image_options": null,
-	//             "modified_date": "2021-01-31 11:18:11",
-	//             "modified_pid": "279",
-	//             "deletion_date": null,
-	//             "modified_username": "Benjamin Böttinger Admin"
-	//           },
-	//           "1887": {
-	//             "id": "1887",
-	//             "domain_type": "song_arrangement",
-	//             "domain_id": "48",
-	//             "bezeichnung": "Wie weit würd ich gehn.sng",
-	//             "filename": "fa028ad85c298e0efade2bad6991dee9.sng",
-	//             "showonlywheneditable_yn": "0",
-	//             "securitylevel_id": null,
-	//             "image_options": null,
-	//             "modified_date": "2021-01-31 11:18:11",
-	//             "modified_pid": "279",
-	//             "deletion_date": null,
-	//             "modified_username": "Benjamin Böttinger Admin"
-	//           }
-	//         }
-	//       }
-	//     },
-	//     "tags": []
-	//   }
-	// `)
 	jsonErr := json.Unmarshal(data, &r)
 	if jsonErr != nil {
-		log.Fatalf("unable to parse value: %q, error: %s", string(data), jsonErr.Error())
+		return nil, fmt.Errorf("unable to parse value: %q, error: %s", string(data), jsonErr.Error())
 	}
-	// log.Println(r)
-	for s := range r.Data.Songs {
-		log.Printf("[%05d] %s", r.Data.Songs[s].ID, string(r.Data.Songs[s].Bezeichnung))
-	}
+	// // log.Println(r)
+	// for s := range r.Data.Songs {
+	// 	log.Printf("[%05d] %s", r.Data.Songs[s].ID, string(r.Data.Songs[s].Bezeichnung))
+	// }
 
-	return nil
-}
-
-// Songs returns the Songs as sent by churchservice/getAllSongs endpoint
-func Songs() {
-	getSongs()
+	return r.Data.Songs, nil
 }
 
 // AddSong adds a new song to Churchtools
@@ -114,7 +52,7 @@ func AddSong(bezeichnung, author, copyright, ccli, tonality, bpm, beat string) i
 	params["beat"] = beat
 	params["songcategory_id"] = "1"
 	params["comments[domain_type]"] = "arrangement"
-	resp := postRequest(churchServiceAjaxURL, params)
+	resp := postRequest(client, churchServiceAjaxURL, params)
 	log.Println(resp.Status)
 	defer resp.Body.Close()
 	data, err := ioutil.ReadAll(resp.Body)
@@ -130,23 +68,60 @@ func AddSong(bezeichnung, author, copyright, ccli, tonality, bpm, beat string) i
 	return r.ID
 }
 
-// AddSongFile Upload and attach a file to a ChurchTools song
-func AddSongFile(arrangementID int, filepath string) {
+// GetSong loads a song from ChurchTools
+func GetSong(songID int) APISong {
 	if client == nil {
 		login()
 	}
-	url := fmt.Sprintf("https://%s/api/files/song_arrangement/%d", domain, arrangementID)
-	request, err := newfileUploadRequest(url, nil, "files[]", filepath, "text/plain")
 
-	resp, err := client.Do(request)
+	url := fmt.Sprintf("https://%s/api/songs/%d", domain, songID)
+	resp := getRequest(url, nil)
+	defer resp.Body.Close()
+	data, err := ioutil.ReadAll(resp.Body)
+
 	if err != nil {
 		log.Fatal(err)
-	} else {
-		var bodyContent []byte
-		fmt.Println(resp.StatusCode)
-		fmt.Println(resp.Header)
-		resp.Body.Read(bodyContent)
-		resp.Body.Close()
-		fmt.Println(bodyContent)
+	}
+	log.Println(string(data))
+	r := getSongResponse{}
+	jsonErr := json.Unmarshal(data, &r)
+	if jsonErr != nil {
+		log.Fatalf("unable to parse value: %q, error: %s", string(data), jsonErr.Error())
+	}
+	log.Println(r)
+	return r.Data
+}
+
+// EditArrangement change the details of an arrangement
+func EditArrangement(arrangement APISongArrangement, songID int) {
+	if client == nil {
+		login()
+	}
+	params := make(map[string]string)
+	params["func"] = "editArrangement"
+	params["bezeichnung"] = arrangement.Name
+	params["length_min"] = fmt.Sprintf("%0.0f", math.Floor(float64(arrangement.Duration)/60))
+	params["length_sec"] = fmt.Sprintf("%d", arrangement.Duration%60)
+	params["tonality"] = arrangement.KeyOfArrangement
+	params["bpm"] = arrangement.BPM
+	params["beat"] = arrangement.Beat
+	params["note"] = arrangement.Note
+	params["song_id"] = fmt.Sprintf("%d", songID)
+	params["id"] = fmt.Sprintf("%d", arrangement.ID)
+	resp := postRequest(client, churchServiceAjaxURL, params)
+	log.Println(resp.Status)
+	defer resp.Body.Close()
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println(string(data))
+	r := apiResponse{}
+	jsonErr := json.Unmarshal(data, &r)
+	if jsonErr != nil {
+		log.Fatalf("unable to parse value: %q, error: %s", string(data), jsonErr.Error())
+	}
+	if r.Status != "success" {
+		log.Fatalf("Cannot edit arrangement: %s", r.Message)
 	}
 }
