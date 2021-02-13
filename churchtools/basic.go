@@ -21,6 +21,7 @@ const domain = "lkg-pfuhl.church.tools"
 
 var basisURL = fmt.Sprintf("https://%s/?q=", domain)
 var churchServiceAjaxURL = "https://lkg-pfuhl.church.tools/?q=churchservice/ajax"
+var churchServiceFiledownloadURL = "https://lkg-pfuhl.church.tools/?q=churchservice/filedownload"
 
 const userid = "2392"
 const token = "23bwRElUXrBXmriaIrMP8vrJAxoIcJH9KJGfTLsEHpusNqnLnnwTBWLLbdjzKilg3Ns0vxZB8SCGATeGc3D8zIgEiqjtpP1VHo64vO9fjFvGcb2wueQETwI8a3w6kWdOoNdR3ZPzm0G50HOczY2AOILkA0fxlb1sboiLPcvNEYuRuCHe3kKe9TFOloFSQLvBrYrRdag0C6qpd3A9YW4XW4byQjsGOKhhPCgoA54nDwHoauLtS8hKD2XdSq9i6sPA"
@@ -113,12 +114,13 @@ func getRequest(url string, params map[string]string) http.Response {
 	return *resp
 }
 
-func postRequest(url string, params map[string]string) http.Response {
+func postRequest(client *http.Client, url string, params map[string]string) http.Response {
 	if client == nil {
 		log.Fatal("please login first")
 	}
 	req, _ := http.NewRequest("POST", url, nil)
 	if params != nil {
+		fmt.Println(params)
 		q := req.URL.Query()
 		for key, value := range params {
 			q.Add(key, value)
