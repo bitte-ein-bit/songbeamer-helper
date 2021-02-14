@@ -1,5 +1,9 @@
 package churchtools
 
+import (
+	"math"
+)
+
 type APISongArrangement struct {
 	ID               int       `json:"id"`
 	Name             string    `json:"name"`
@@ -11,4 +15,24 @@ type APISongArrangement struct {
 	Note             string    `json:"note,omitempty"`
 	Files            []APIFile `json:"files,omitempty"`
 	Links            []APIFile `json:"links,omitempty"`
+}
+
+func (a *APISongArrangement) ToArrangement() (ret SongArrangement) {
+	d := 0
+	if a.Default {
+		d = 1
+	}
+	ret = SongArrangement{
+		ID:          a.ID,
+		Bezeichnung: a.Name,
+		Default:     d,
+		Tonality:    a.KeyOfArrangement,
+		BPM:         a.BPM,
+		Beat:        a.Beat,
+		Seconds:     int(a.Duration % 60),
+		Minutes:     int(math.Floor(float64(a.Duration) / 60)),
+		Note:        a.Note,
+		// Files: map[string]SongFile,
+	}
+	return
 }

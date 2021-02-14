@@ -184,7 +184,7 @@ func newfileUploadRequest(uri string, params map[string]string, paramName, path,
 	req.Header.Set("CSRF-Token", getCSRFToken())
 	req.Header.Add("Content-Type", writer.FormDataContentType())
 	log.Println(req.Header)
-	log.Println(body)
+	// log.Println(body)
 	return req, err
 
 }
