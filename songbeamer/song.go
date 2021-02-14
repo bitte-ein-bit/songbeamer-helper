@@ -28,13 +28,14 @@ type SongbeamerSong struct {
 	VerseOrder               string
 	Filename                 string
 	Category                 []string
-	Verses                   map[string]string
+	Verses                   [][]string
 	Headers                  map[string]string
 }
 
 // LoadFromFile loads a sng file into a SongbeamerSong struct
 func (s *SongbeamerSong) LoadFromFile(filename string) {
 	inHeader := true
+	var verse []string
 	s.Filename = filename
 	lines, err := util.File2lines(filename)
 	util.CheckForError(err)
@@ -42,7 +43,11 @@ func (s *SongbeamerSong) LoadFromFile(filename string) {
 	for _, line := range lines {
 		if line == "---" {
 			inHeader = false
-			break
+			if len(verse) > 0 {
+				s.Verses = append(s.Verses, verse)
+				verse = []string{}
+			}
+			continue
 		}
 		if inHeader {
 			header := strings.Split(line, "=")
@@ -80,9 +85,13 @@ func (s *SongbeamerSong) LoadFromFile(filename string) {
 			}
 			continue
 		}
-		if line == "--" {
-			continue
-		}
+		verse = append(verse, line)
+		// if line == "--" {
+		// 	continue
+		// }
+	}
+	if len(verse) > 0 {
+		s.Verses = append(s.Verses, verse)
 	}
 }
 
@@ -162,4 +171,49 @@ func (s *SongbeamerSong) SetKeyOfArrangement(arrangement churchtools.SongArrange
 	line := fmt.Sprintf("#Key=%s\n", s.KeyOfArrangement)
 	err := util.InsertStringToFile(s.Filename, line, 1)
 	util.CheckForError(err)
+}
+
+func nonEmptyHeader(name, value string) string {
+	if value != "" {
+		return fmt.Sprintf("#%s=%s\r\n", name, value)
+	}
+	return ""
+}
+
+func (s *SongbeamerSong) Save() error {
+	fileContent := string('\uFEFF') // Add BOM for Songbeamer
+
+	fileContent += nonEmptyHeader("Author", s.Author)
+	fileContent += nonEmptyHeader("(c)", s.Copyright)
+	fileContent += nonEmptyHeader("Key", s.KeyOfArrangement)
+	fileContent += nonEmptyHeader("ID", s.ID)
+	fileContent += nonEmptyHeader("CCLI", s.CCLI)
+	fileContent += nonEmptyHeader("Title", s.Title)
+	fileContent += nonEmptyHeader("VerseOrder", s.VerseOrder)
+	fileContent += nonEmptyHeader("Categories", strings.Join(s.Category, ","))
+
+	for name, value := range s.Headers {
+		fileContent += nonEmptyHeader(name, value)
+	}
+
+	for _, lines := range s.Verses {
+		fileContent += "---\r\n"
+		for _, line := range lines {
+			fileContent += fmt.Sprintf("%s\r\n", line)
+		}
+	}
+
+	f, err := os.Create(s.Filename)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, err = fmt.Fprint(f, fileContent)
+
+	if err != nil {
+		return err
+	}
+
+	err = f.Close()
+	return err
 }

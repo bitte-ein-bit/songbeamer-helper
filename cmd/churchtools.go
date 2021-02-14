@@ -82,11 +82,25 @@ func uploadToChurchTools() {
 	// }
 }
 
-func filterSongs(songs map[string]churchtools.Song, ccliID string) (ret churchtools.Song) {
+func filterSongs(songs map[string]churchtools.Song, filterField, search string) (ret churchtools.Song) {
 	for _, song := range songs {
-		if song.CCLI == ccliID {
-			return song
+		switch filterField {
+		case "CCLI":
+			if song.CCLI == search {
+				return song
+			}
+		case "Title":
+			if song.Bezeichnung == search {
+				return song
+			}
+		case "ID":
+			if fmt.Sprintf("%d", song.ID) == search {
+				return song
+			}
+		default:
+			log.Fatal("No default filter")
 		}
+
 	}
 	return churchtools.Song{}
 }
@@ -116,32 +130,39 @@ func processSongbeamerSongs(songs map[string]churchtools.Song) map[string]church
 				continue
 			}
 			if song.CCLI != "" {
-				ctSong := filterSongs(songs, song.CCLI)
+				ctSong := filterSongs(songs, "CCLI", song.CCLI)
 				if ctSong.ID != 0 {
 					log.Println(ctSong)
-					song.AddID(ctSong.ID, ctSong.GetDefaultArrangement())
+					song.ID = fmt.Sprintf("%d", ctSong.ID)
 					song.Title = ctSong.Bezeichnung
+					song.Save()
 					song.SetKeyOfArrangement(ctSong.GetDefaultArrangement())
+
 					err := song.FixFilename()
 					if err != nil {
 						log.Printf("Cannot fix filename %s", err)
 						song.MoveToDuplicates(duplicates)
 					}
+
 					continue
 				}
 				id := churchtools.AddSong(song.Title, song.Author, song.Copyright, song.CCLI, song.KeyOfArrangement, "", "")
 				ctAPISong := churchtools.GetSong(id)
-				log.Printf("Added new Song: %v", ctAPISong)
 				ctSong = ctAPISong.ToSong()
+				songs[fmt.Sprintf("%d", ctSong.ID)] = ctSong
+				song.ID = fmt.Sprintf("%d", ctSong.ID)
+
+				log.Printf("Added new Song: %v", ctAPISong)
 				log.Printf("Converted to %v", ctSong)
 				log.Printf("Default Arrangement: %v", ctSong.GetDefaultArrangement())
-				songs[fmt.Sprintf("%d", ctSong.ID)] = ctSong
-				song.AddID(ctSong.ID, ctSong.GetDefaultArrangement())
 				log.Printf("SongID: %s", song.ID)
+				song.Save()
 				err := song.FixFilename()
 				if err != nil {
 					log.Printf("Cannot fix filename %s", err)
+					song.MoveToDuplicates(duplicates)
 				}
+
 				ctAPIFile, err := churchtools.NewAPIFile(song.Filename)
 				util.CheckForError(err)
 				ctAPIFile.DomainID = ctAPISong.GetDefaultArrangement().ID
@@ -153,6 +174,7 @@ func processSongbeamerSongs(songs map[string]churchtools.Song) map[string]church
 			err := song.FixFilename()
 			if err != nil {
 				log.Printf("Cannot fix filename %s", err)
+				song.MoveToDuplicates(duplicates)
 			}
 			count++
 			if count > 10 {
