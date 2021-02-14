@@ -1,5 +1,10 @@
 package churchtools
 
+import (
+	"fmt"
+	"log"
+)
+
 // The APISong is describing the api response of a Song. It is further defined by one or more Arrangements
 type APISong struct {
 	ID           int                  `json:"id"`
@@ -16,8 +21,29 @@ type APISong struct {
 func (s *APISong) GetDefaultArrangement() (ret APISongArrangement) {
 	for _, value := range s.Arrangements {
 		if value.Default {
-			ret = value
+			log.Printf("default arrangement: %d - %s", value.ID, value.Name)
+			return value
 		}
+	}
+	log.Print("No default arrangement found")
+	return
+}
+
+func (s *APISong) ToSong() (ret Song) {
+	a := make(map[string]SongArrangement)
+	for _, value := range s.Arrangements {
+		a[fmt.Sprintf("%d", value.ID)] = value.ToArrangement()
+	}
+	ret = Song{
+		ID:             s.ID,
+		Bezeichnung:    s.Bezeichnung,
+		SongcategoryID: s.Category.ID,
+		// Practice: s.Practice,
+		Author:       s.Author,
+		CCLI:         s.CCLI,
+		Copyright:    s.Copyright,
+		Note:         s.Note,
+		Arrangements: a,
 	}
 	return
 }

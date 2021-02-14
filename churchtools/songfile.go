@@ -1,12 +1,5 @@
 package churchtools
 
-import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"log"
-)
-
 // A SongFile describes files attached to an SongArrangement
 type SongFile struct {
 	ID                     int    `json:"id,string"`

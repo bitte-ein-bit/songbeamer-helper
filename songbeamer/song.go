@@ -1,7 +1,9 @@
 package songbeamer
 
 import (
+	"crypto/md5"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -70,7 +72,11 @@ func (s *SongbeamerSong) LoadFromFile(filename string) {
 				if s.Headers == nil {
 					s.Headers = make(map[string]string)
 				}
-				s.Headers[strings.Trim(header[0], "#")] = header[1]
+				name := strings.Trim(header[0], "#")
+				s.Headers[name] = header[1]
+				if name == "Melody" && s.Author == "" {
+					s.Author = header[1]
+				}
 			}
 			continue
 		}
@@ -100,6 +106,25 @@ func (s *SongbeamerSong) FixFilename() error {
 	return nil
 }
 
+// MoveToDuplicates moves the Songbeamer file out of the way
+func (s *SongbeamerSong) MoveToDuplicates(path string) error {
+	f, err := os.Open(s.Filename)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+
+	h := md5.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return fmt.Errorf("Can't compute MD5: %w", err)
+	}
+	newFilename := fmt.Sprintf("%s/%s-%s.sng", path, strings.Replace(s.Title, "/", "_", -1), fmt.Sprintf("%x", h.Sum(nil)))
+	err = os.Rename(s.Filename, newFilename)
+	util.CheckForError(err)
+	s.Filename = newFilename
+	return nil
+}
+
 // AddID adds a ChurchTools Song ID to a Songbeamer File
 func (s *SongbeamerSong) AddID(songID int, arrangement churchtools.SongArrangement) {
 	s.ChurchToolsID = fmt.Sprintf("%d", songID)
@@ -116,16 +141,20 @@ func (s *SongbeamerSong) AddID(songID int, arrangement churchtools.SongArrangeme
 	util.CheckForError(err)
 }
 
-
 // SetKeyOfArrangement adds a Key to a Songbeamer File
 func (s *SongbeamerSong) SetKeyOfArrangement(arrangement churchtools.SongArrangement) {
-	if s.KeyOfArrangement == arrangement.Tonality {
+	nT := strings.TrimSpace(arrangement.Tonality)
+	if nT == "" {
+		return
+	}
+	if strings.TrimSpace(s.KeyOfArrangement) == nT {
 		return
 	}
 	if s.KeyOfArrangement != "" {
-		log.Fatalf("missmatch of keys: %s vs. %s", s.KeyOfArrangement, arrangement.Tonality)
+		log.Fatalf("missmatch of keys: %s vs. %s", s.KeyOfArrangement, nT)
+		return
 	}
-	s.KeyOfArrangement = arrangement.Tonality
+	s.KeyOfArrangement = nT
 	if s.Filename == "" {
 		log.Fatal("Cannot save to non-set file")
 	}
