@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/bitte-ein-bit/songbeamer-helper/churchtools"
@@ -58,10 +59,11 @@ func (s *SongbeamerSong) LoadFromFile(filename string) {
 				s.KeyOfArrangement = header[1]
 			case "ID":
 				s.ID = header[1]
-				tmp := strings.Split(header[1], "-")
+				tmp := strings.SplitN(header[1], "-", 3)
 				s.ChurchToolsID = tmp[0]
 				if len(tmp) > 1 {
 					s.ChurchToolsArrangementID = tmp[1]
+					s.ChurchToolsArrangement = tmp[2]
 				}
 			case "CCLI":
 				s.CCLI = header[1]
@@ -134,20 +136,12 @@ func (s *SongbeamerSong) MoveToDuplicates(path string) error {
 	return nil
 }
 
-// AddID adds a ChurchTools Song ID to a Songbeamer File
-func (s *SongbeamerSong) AddID(songID int, arrangement churchtools.SongArrangement) {
+// SetID adds a ChurchTools Song ID to a Songbeamer File
+func (s *SongbeamerSong) SetID(songID int, arrangement churchtools.SongArrangement) {
 	s.ChurchToolsID = fmt.Sprintf("%d", songID)
 	s.ChurchToolsArrangementID = fmt.Sprintf("%d", arrangement.ID)
 	s.ChurchToolsArrangement = arrangement.Bezeichnung
 	s.ID = fmt.Sprintf("%s-%s-%s", s.ChurchToolsID, s.ChurchToolsArrangementID, s.ChurchToolsArrangement)
-
-	if s.Filename == "" {
-		log.Fatal("Cannot save to non-set file")
-	}
-	log.Printf("Adding ID to %v", s.Filename)
-	line := fmt.Sprintf("#ID=%s\n", s.ID)
-	err := util.InsertStringToFile(s.Filename, line, 1)
-	util.CheckForError(err)
 }
 
 // SetKeyOfArrangement adds a Key to a Songbeamer File
@@ -216,4 +210,13 @@ func (s *SongbeamerSong) Save() error {
 
 	err = f.Close()
 	return err
+}
+
+func (s *SongbeamerSong) ExtractArrangementFromFilename() string {
+	re := regexp.MustCompile("(.+) - (.+)\\.sng")
+	data := re.FindStringSubmatch(s.Filename)
+	if len(data) == 0 {
+		return ""
+	}
+	return data[2]
 }
