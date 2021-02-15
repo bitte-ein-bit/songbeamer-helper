@@ -37,10 +37,11 @@ func GetSongs() (map[string]Song, error) {
 }
 
 // AddSong adds a new song to Churchtools
-func AddSong(bezeichnung, author, copyright, ccli, tonality, bpm, beat string) int {
+func AddSong(bezeichnung, author, copyright, ccli, tonality, bpm, beat, songCat string) int {
 	if client == nil {
 		login()
 	}
+
 	params := make(map[string]string)
 	params["func"] = "addNewSong"
 	params["bezeichnung"] = bezeichnung
@@ -50,7 +51,7 @@ func AddSong(bezeichnung, author, copyright, ccli, tonality, bpm, beat string) i
 	params["tonality"] = tonality
 	params["bpm"] = bpm
 	params["beat"] = beat
-	params["songcategory_id"] = "1"
+	params["songcategory_id"] = songCat
 	params["comments[domain_type]"] = "arrangement"
 	resp := postRequest(client, churchServiceAjaxURL, params)
 	log.Println(resp.Status)
