@@ -27,6 +27,11 @@ var cmdCTGet = &cobra.Command{
 	},
 }
 
+const (
+	noCCLISongCat = "2" // Songs ohne CCLI Nummer
+	cCLISongCat   = "1" // inactive Songs
+)
+
 func uploadToChurchTools() {
 	// churchtools.Login()
 	log.Println("syncing to ChurchTools")
@@ -68,17 +73,6 @@ func uploadToChurchTools() {
 	// err = songfile.Save()
 	// if err != nil {
 	// 	log.Fatal(err)
-	// }
-	// path := viper.GetString("songspath")
-	// log.Printf("Reading songs from %v", path)
-	// files, err := ioutil.ReadDir(path)
-	// util.CheckForError(err)
-
-	// for _, file := range files {
-	// 	if filepath.Ext(file.Name()) == ".sng" {
-	// 		fullpath := filepath.Join(path, file.Name())
-	// 		processSong(fullpath)
-	// 	}
 	// }
 }
 
@@ -146,7 +140,7 @@ func processSongbeamerSongs(songs map[string]churchtools.Song) map[string]church
 
 					continue
 				}
-				id := churchtools.AddSong(song.Title, song.Author, song.Copyright, song.CCLI, song.KeyOfArrangement, "", "")
+				id := churchtools.AddSong(song.Title, song.Author, song.Copyright, song.CCLI, song.KeyOfArrangement, "", "", cCLISongCat)
 				ctAPISong := churchtools.GetSong(id)
 				ctSong = ctAPISong.ToSong()
 				songs[fmt.Sprintf("%d", ctSong.ID)] = ctSong
@@ -170,6 +164,50 @@ func processSongbeamerSongs(songs map[string]churchtools.Song) map[string]church
 
 				err = ctAPIFile.Save()
 				util.CheckForError(err)
+				continue
+			}
+			if song.Title != "" {
+				ctSong := filterSongs(songs, "Title", song.Title)
+
+				if ctSong.ID != 0 && ctSong.Author == song.Author {
+					log.Println(ctSong)
+					song.ID = fmt.Sprintf("%d", ctSong.ID)
+					song.Save()
+					song.SetKeyOfArrangement(ctSong.GetDefaultArrangement())
+					// TODO arrangement erkennen
+					err := song.FixFilename()
+					if err != nil {
+						log.Printf("Cannot fix filename %s", err)
+						song.MoveToDuplicates(duplicates)
+					}
+					continue
+				}
+
+				id := churchtools.AddSong(song.Title, song.Author, song.Copyright, song.CCLI, song.KeyOfArrangement, "", "", noCCLISongCat)
+				ctAPISong := churchtools.GetSong(id)
+				ctSong = ctAPISong.ToSong()
+				songs[fmt.Sprintf("%d", ctSong.ID)] = ctSong
+				song.ID = fmt.Sprintf("%d", ctSong.ID)
+
+				log.Printf("Added new Song: %v", ctAPISong)
+				log.Printf("Converted to %v", ctSong)
+				log.Printf("Default Arrangement: %v", ctSong.GetDefaultArrangement())
+				log.Printf("SongID: %s", song.ID)
+				song.Save()
+				err := song.FixFilename()
+				if err != nil {
+					log.Printf("Cannot fix filename %s", err)
+					song.MoveToDuplicates(duplicates)
+				}
+
+				ctAPIFile, err := churchtools.NewAPIFile(song.Filename)
+				util.CheckForError(err)
+				ctAPIFile.DomainID = ctAPISong.GetDefaultArrangement().ID
+				ctAPIFile.DomainType = "song_arrangement"
+
+				err = ctAPIFile.Save()
+				util.CheckForError(err)
+				continue
 			}
 			err := song.FixFilename()
 			if err != nil {

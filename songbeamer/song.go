@@ -102,7 +102,7 @@ func (s *SongbeamerSong) FixFilename() error {
 		id = fmt.Sprintf(" - %s", s.ChurchToolsArrangement)
 	}
 	filenameByTitle := fmt.Sprintf("%s%s.sng", strings.Replace(s.Title, "/", "_", -1), id)
-	if filepath.Base(s.Filename) != filenameByTitle {
+	if strings.ToLower(filepath.Base(s.Filename)) != strings.ToLower(filenameByTitle) {
 		log.Printf("%s should be named %s", s.Filename, filenameByTitle)
 		newFilename := fmt.Sprintf("%s/%s", filepath.Dir(s.Filename), filenameByTitle)
 		if _, err := os.Stat(newFilename); err == nil {
