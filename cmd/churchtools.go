@@ -38,10 +38,10 @@ func uploadToChurchTools() {
 	songs, err := churchtools.GetSongs()
 	util.CheckForError(err)
 
-	for _, song := range songs {
-		song.Delete()
-	}
-	songs = nil
+	// for _, song := range songs {
+	// 	song.Delete()
+	// }
+	// songs = nil
 
 	songs = processSongbeamerSongs(songs)
 	log.Println(songs)
@@ -74,6 +74,7 @@ func uploadToChurchTools() {
 	// if err != nil {
 	// 	log.Fatal(err)
 	// }
+	log.Println("done")
 }
 
 func filterSongs(songs map[string]churchtools.Song, filterField, search string) (ret churchtools.Song) {
@@ -118,20 +119,32 @@ func processSongbeamerSongs(songs map[string]churchtools.Song) map[string]church
 			fullpath := filepath.Join(path, file.Name())
 			song := songbeamer.SongbeamerSong{}
 			song.LoadFromFile(fullpath)
-			log.Println(song)
+			log.Printf("Working on %s", song.Title)
 			if song.ID != "" {
+				a := song.ExtractArrangementFromFilename()
+				log.Printf("Song has CT ID of %s, arrangement by Filename is %s, arrangement by ID is %s", song.ChurchToolsID, a, song.ChurchToolsArrangement)
+				if a != song.ChurchToolsArrangement && a != "" {
+					log.Printf("Seems song was renamed to new arrangement: %s", a)
+					ctSong := filterSongs(songs, "ID", song.ChurchToolsID)
+					for key, arrange := range ctSong.Arrangements {
+						// TODO check if arrangement exists, create otherwise
+						log.Println(key)
+						log.Println(arrange)
+					}
+				}
 				// check if file is newer -> upload if newer
+				// TODO arrangement erkennen
 				continue
 			}
 			if song.CCLI != "" {
 				ctSong := filterSongs(songs, "CCLI", song.CCLI)
 				if ctSong.ID != 0 {
 					log.Println(ctSong)
-					song.ID = fmt.Sprintf("%d", ctSong.ID)
+					song.SetID(ctSong.ID, ctSong.GetDefaultArrangement())
 					song.Title = ctSong.Bezeichnung
 					song.Save()
 					song.SetKeyOfArrangement(ctSong.GetDefaultArrangement())
-
+					// TODO arrangement erkennen
 					err := song.FixFilename()
 					if err != nil {
 						log.Printf("Cannot fix filename %s", err)
@@ -144,8 +157,7 @@ func processSongbeamerSongs(songs map[string]churchtools.Song) map[string]church
 				ctAPISong := churchtools.GetSong(id)
 				ctSong = ctAPISong.ToSong()
 				songs[fmt.Sprintf("%d", ctSong.ID)] = ctSong
-				song.ID = fmt.Sprintf("%d", ctSong.ID)
-
+				song.SetID(ctSong.ID, ctSong.GetDefaultArrangement())
 				log.Printf("Added new Song: %v", ctAPISong)
 				log.Printf("Converted to %v", ctSong)
 				log.Printf("Default Arrangement: %v", ctSong.GetDefaultArrangement())
@@ -171,7 +183,7 @@ func processSongbeamerSongs(songs map[string]churchtools.Song) map[string]church
 
 				if ctSong.ID != 0 && ctSong.Author == song.Author {
 					log.Println(ctSong)
-					song.ID = fmt.Sprintf("%d", ctSong.ID)
+					song.SetID(ctSong.ID, ctSong.GetDefaultArrangement())
 					song.Save()
 					song.SetKeyOfArrangement(ctSong.GetDefaultArrangement())
 					// TODO arrangement erkennen
@@ -187,8 +199,7 @@ func processSongbeamerSongs(songs map[string]churchtools.Song) map[string]church
 				ctAPISong := churchtools.GetSong(id)
 				ctSong = ctAPISong.ToSong()
 				songs[fmt.Sprintf("%d", ctSong.ID)] = ctSong
-				song.ID = fmt.Sprintf("%d", ctSong.ID)
-
+				song.SetID(ctSong.ID, ctSong.GetDefaultArrangement())
 				log.Printf("Added new Song: %v", ctAPISong)
 				log.Printf("Converted to %v", ctSong)
 				log.Printf("Default Arrangement: %v", ctSong.GetDefaultArrangement())

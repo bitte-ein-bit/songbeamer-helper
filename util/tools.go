@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/dimchansky/utfbom"
@@ -92,7 +93,7 @@ func DetectEncoding(path string) *charmap.Charmap {
 	result, err := detector.DetectBest(dat)
 	CheckForError(err)
 
-	log.Printf("Detected charset for %s is %s", path, result.Charset)
+	log.Printf("Detected charset for %s is %s", filepath.Base(path), result.Charset)
 	switch result.Charset {
 	case "ISO-8859-1":
 		return charmap.Windows1252
