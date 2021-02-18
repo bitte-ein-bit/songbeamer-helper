@@ -1,4 +1,6 @@
 songspath: F:\Songbeamer\Songs
+duplicates: F:\Songbeamer\SongDuplicates
+
 aws:
   awsAccessKeyID: test
   awsSecretAccessKey: secret
