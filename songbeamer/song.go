@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/bitte-ein-bit/songbeamer-helper/churchtools"
 	"github.com/bitte-ein-bit/songbeamer-helper/util"
@@ -248,13 +249,18 @@ func (s *Song) UploadToArrangement(arrangement churchtools.SongArrangement, dupl
 		s.MoveToDuplicates(duplicatesPath)
 		return nil
 	}
-	ctAPIFile, err := churchtools.NewAPIFile(s.Filename)
-	if err != nil {
-		return fmt.Errorf("Cannot create APIFile: %w", err)
-	}
+	ctAPIFile := churchtools.NewSongAPIFile(s.Filename, arrangement.ID)
 	ctAPIFile.SetUploadName(s.GetFilenameWithoutArrangement())
-	ctAPIFile.DomainID = arrangement.ID
-	ctAPIFile.DomainType = "song_arrangement"
 	err = ctAPIFile.Save()
 	return err
+}
+
+// GetModificationDate returns the modification date of the file
+func (s *Song) GetModificationDate() (t time.Time, err error) {
+	fi, err := os.Stat(s.Filename)
+	if err != nil {
+		return
+	}
+	t = fi.ModTime()
+	return
 }

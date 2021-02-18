@@ -163,14 +163,41 @@ func processSongbeamerSongs(songs map[string]churchtools.Song) map[string]church
 					}
 					continue
 				}
-				log.Println("TODO: not implemented yet")
-				// check if file is newer -> upload if newer
-				// TODO arrangement erkennen
+				newer := true
+				APIFileToUpdate := *churchtools.NewSongAPIFile(song.Filename, arrangement.ID)
+
+				for _, file := range arrangement.Files {
+					log.Printf("Checking %s aka %s", file.Bezeichnung, file.Filename)
+					if file.Bezeichnung != song.GetFilenameWithoutArrangement() {
+						log.Printf("no match: %s != %s", file.Bezeichnung, song.GetFilenameWithoutArrangement())
+						continue
+					}
+					ctDate, _ := file.GetModificationDate()
+					sngDate, _ := song.GetModificationDate()
+					if sngDate.After(ctDate) {
+						log.Printf("CT is older: %v < %v", ctDate, sngDate)
+						APIFileToUpdate = file.ToAPIFile()
+						continue
+					}
+					log.Printf("CT is newer: %v >= %v", ctDate, sngDate)
+					newer = false
+				}
+				if !newer {
+					continue
+				}
+				log.Println("File needs to be updated on CT")
+				APIFileToUpdate.SetUploadName(song.GetFilenameWithoutArrangement())
+				APIFileToUpdate.LoadFromFile(song.Filename)
+				err = APIFileToUpdate.Save()
+				if err != nil {
+					log.Println(err)
+				}
 				continue
 			}
 			if song.CCLI != "" {
 				ctSong := filterSongs(songs, "CCLI", song.CCLI)
 				if ctSong.ID != 0 {
+					// found a matching song on ChurchTools
 					log.Println(ctSong)
 					song.SetID(ctSong.ID, ctSong.GetDefaultArrangement())
 					song.Title = ctSong.Bezeichnung

@@ -119,7 +119,7 @@ func postRequest(client *http.Client, url string, params map[string]string) http
 	}
 	req, _ := http.NewRequest("POST", url, nil)
 	if params != nil {
-		fmt.Println(params)
+		// fmt.Println(params)
 		q := req.URL.Query()
 		for key, value := range params {
 			q.Add(key, value)
@@ -128,12 +128,12 @@ func postRequest(client *http.Client, url string, params map[string]string) http
 	}
 	req.Header.Set("Content-type", "application/x-www-form-urlencoded")
 	req.Header.Set("CSRF-Token", getCSRFToken())
-	log.Println(req.Header)
+	// log.Println(req.Header)
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println(resp.Header)
+	// log.Println(resp.Header)
 	return *resp
 }
 
