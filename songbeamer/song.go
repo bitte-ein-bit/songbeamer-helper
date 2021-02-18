@@ -228,6 +228,7 @@ func (s *Song) Save() error {
 	return err
 }
 
+// ExtractArrangementFromFilename derives the arrangement name from the sng filename
 func (s *Song) ExtractArrangementFromFilename() string {
 	re := regexp.MustCompile("(.+) - (.+)\\.sng")
 	data := re.FindStringSubmatch(s.Filename)
@@ -235,4 +236,25 @@ func (s *Song) ExtractArrangementFromFilename() string {
 		return ""
 	}
 	return data[2]
+}
+
+// UploadToArrangement attaches a song to a ChurchTools Songbeamer arrangement
+func (s *Song) UploadToArrangement(arrangement churchtools.SongArrangement, duplicatesPath string) error {
+	s.SetID(s.ChurchToolsID, arrangement)
+	s.Save()
+	err := s.FixFilename()
+	if err != nil {
+		log.Printf("Cannot fix filename %s", err)
+		s.MoveToDuplicates(duplicatesPath)
+		return nil
+	}
+	ctAPIFile, err := churchtools.NewAPIFile(s.Filename)
+	if err != nil {
+		return fmt.Errorf("Cannot create APIFile: %w", err)
+	}
+	ctAPIFile.SetUploadName(s.GetFilenameWithoutArrangement())
+	ctAPIFile.DomainID = arrangement.ID
+	ctAPIFile.DomainType = "song_arrangement"
+	err = ctAPIFile.Save()
+	return err
 }
