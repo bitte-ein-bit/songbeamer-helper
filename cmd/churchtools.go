@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"log"
 	"path/filepath"
-	"strings"
 
 	"github.com/bitte-ein-bit/songbeamer-helper/churchtools"
 	"github.com/bitte-ein-bit/songbeamer-helper/songbeamer"
@@ -77,7 +76,7 @@ func uploadToChurchTools() {
 	log.Println("done")
 }
 
-func filterSongs(songs map[string]churchtools.Song, filterField, search string) (ret churchtools.Song) {
+func filterSongs(songs map[string]churchtools.Song, filterField string, search interface{}) (ret churchtools.Song) {
 	for _, song := range songs {
 		switch filterField {
 		case "CCLI":
@@ -89,7 +88,7 @@ func filterSongs(songs map[string]churchtools.Song, filterField, search string) 
 				return song
 			}
 		case "ID":
-			if fmt.Sprintf("%d", song.ID) == search {
+			if song.ID == search {
 				return song
 			}
 		default:
@@ -121,16 +120,47 @@ func processSongbeamerSongs(songs map[string]churchtools.Song) map[string]church
 			song.LoadFromFile(fullpath)
 			log.Printf("Working on %s", song.Title)
 			if song.ID != "" {
+				// Song has an ID, so it should exists in ChurchTools
 				a := song.ExtractArrangementFromFilename()
-				log.Printf("Song has CT ID of %s, arrangement by Filename is %s, arrangement by ID is %s", song.ChurchToolsID, a, song.ChurchToolsArrangement)
-				if a != song.ChurchToolsArrangement && a != "" {
-					log.Printf("Seems song was renamed to new arrangement: %s", a)
-					ctSong := filterSongs(songs, "ID", song.ChurchToolsID)
-					for key, arrange := range ctSong.Arrangements {
-						// TODO check if arrangement exists, create otherwise
-						log.Println(key)
-						log.Println(arrange)
+				if a == "" {
+					a = "Standard-Arrangement"
+				}
+				log.Printf("Song has CT ID of %d, arrangement by Filename is %s, arrangement by ID is %s", song.ChurchToolsID, a, song.ChurchToolsArrangement)
+
+				// The arrangement component in the Filename and the one extracted from the ID field mismatch
+				// -> the file has been renamed to create a new arrangement
+				log.Printf("Seems song was renamed to new arrangement: %s", a)
+				ctSong := filterSongs(songs, "ID", song.ChurchToolsID)
+				arrangementID := 0
+				var arrangement churchtools.SongArrangement
+				for _, arrange := range ctSong.Arrangements {
+					if arrange.Bezeichnung == a {
+						log.Println("Arrangement found, checking if newer")
+						arrangementID = arrange.ID
+						arrangement = arrange
 					}
+				}
+				if arrangementID == 0 {
+					arrangementID, err = ctSong.AddArrangement(a)
+					util.CheckForError(err)
+					arrangement = churchtools.SongArrangement{
+						ID: arrangementID,
+						Bezeichnung: a,
+					}
+				}
+				song.SetID(song.ChurchToolsID, arrangement)
+				song.Save()
+				ctAPIFile, err := churchtools.NewAPIFile(song.Filename)
+				util.CheckForError(err)
+				ctAPIFile.DomainID = arrangementID
+				ctAPIFile.DomainType = "song_arrangement"
+				err = ctAPIFile.Save()
+				util.CheckForError(err)
+
+				err = song.FixFilename()
+				if err != nil {
+					log.Printf("Cannot fix filename %s", err)
+					song.MoveToDuplicates(duplicates)
 				}
 				// check if file is newer -> upload if newer
 				// TODO arrangement erkennen
@@ -234,30 +264,4 @@ func processSongbeamerSongs(songs map[string]churchtools.Song) map[string]church
 		}
 	}
 	return songs
-}
-
-func processSongbeamerSong(filename string) {
-	found := false
-	lines, err := util.File2lines(filename)
-	util.CheckForError(err)
-
-	for _, line := range lines {
-		if line == "---" {
-			break
-		}
-		header := strings.Split(line, "=")
-		if strings.ToLower(header[0]) == "#id" {
-			if header[1] != "1" {
-				found = true
-				break
-			}
-		}
-	}
-
-	if !found {
-		log.Printf("Adding ID to %v", filename)
-		line := fmt.Sprintf("#ID=%v\n", getNextChurchSongID())
-		err := util.InsertStringToFile(filename, line, 1)
-		util.CheckForError(err)
-	}
 }
