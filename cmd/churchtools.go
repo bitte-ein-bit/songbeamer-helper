@@ -43,6 +43,7 @@ func uploadToChurchTools() {
 	// songs = nil
 
 	songs = processSongbeamerSongs(songs)
+	log.Println("These are all songs known at the end of processing:")
 	log.Println(songs)
 	// id := churchtools.AddSong("test1", "jonathan", "", "", "", "", "")
 	// id := 72
@@ -107,7 +108,7 @@ func processSongbeamerSongs(songs map[string]churchtools.Song) map[string]church
 	files, err := ioutil.ReadDir(path)
 	util.CheckForError(err)
 
-	count := 0
+	// count := 0
 
 	if songs == nil {
 		songs = make(map[string]churchtools.Song)
@@ -127,9 +128,6 @@ func processSongbeamerSongs(songs map[string]churchtools.Song) map[string]church
 				}
 				log.Printf("Song has CT ID of %d, arrangement by Filename is %s, arrangement by ID is %s", song.ChurchToolsID, a, song.ChurchToolsArrangement)
 
-				// The arrangement component in the Filename and the one extracted from the ID field mismatch
-				// -> the file has been renamed to create a new arrangement
-				log.Printf("Seems song was renamed to new arrangement: %s", a)
 				ctSong := filterSongs(songs, "ID", song.ChurchToolsID)
 				if ctSong.ID == 0 {
 					song.ID = ""
@@ -152,28 +150,20 @@ func processSongbeamerSongs(songs map[string]churchtools.Song) map[string]church
 					}
 				}
 				if arrangementID == 0 {
+					log.Printf("Seems song was renamed to new arrangement: %s", a)
 					arrangementID, err = ctSong.AddArrangement(a)
 					util.CheckForError(err)
 					arrangement = churchtools.SongArrangement{
 						ID:          arrangementID,
 						Bezeichnung: a,
 					}
+					err = song.UploadToArrangement(arrangement, duplicates)
+					if err != nil {
+						log.Fatalf("Error Uploading: %v", err)
+					}
+					continue
 				}
-				song.SetID(song.ChurchToolsID, arrangement)
-				song.Save()
-				ctAPIFile, err := churchtools.NewAPIFile(song.Filename)
-				ctAPIFile.SetUploadName(song.GetFilenameWithoutArrangement())
-				util.CheckForError(err)
-				ctAPIFile.DomainID = arrangementID
-				ctAPIFile.DomainType = "song_arrangement"
-				err = ctAPIFile.Save()
-				util.CheckForError(err)
-
-				err = song.FixFilename()
-				if err != nil {
-					log.Printf("Cannot fix filename %s", err)
-					song.MoveToDuplicates(duplicates)
-				}
+				log.Println("TODO: not implemented yet")
 				// check if file is newer -> upload if newer
 				// TODO arrangement erkennen
 				continue
@@ -199,26 +189,10 @@ func processSongbeamerSongs(songs map[string]churchtools.Song) map[string]church
 				ctAPISong := churchtools.GetSong(id)
 				ctSong = ctAPISong.ToSong()
 				songs[fmt.Sprintf("%d", ctSong.ID)] = ctSong
-				song.SetID(ctSong.ID, ctSong.GetDefaultArrangement())
-				log.Printf("Added new Song: %v", ctAPISong)
-				log.Printf("Converted to %v", ctSong)
-				log.Printf("Default Arrangement: %v", ctSong.GetDefaultArrangement())
-				log.Printf("SongID: %s", song.ID)
-				song.Save()
-				err := song.FixFilename()
+				err = song.UploadToArrangement(ctSong.GetDefaultArrangement(), duplicates)
 				if err != nil {
-					log.Printf("Cannot fix filename %s", err)
-					song.MoveToDuplicates(duplicates)
+					log.Fatalf("Error Uploading: %v", err)
 				}
-
-				ctAPIFile, err := churchtools.NewAPIFile(song.Filename)
-				ctAPIFile.SetUploadName(song.GetFilenameWithoutArrangement())
-				util.CheckForError(err)
-				ctAPIFile.DomainID = ctAPISong.GetDefaultArrangement().ID
-				ctAPIFile.DomainType = "song_arrangement"
-
-				err = ctAPIFile.Save()
-				util.CheckForError(err)
 				continue
 			}
 			if song.Title != "" {
@@ -242,39 +216,22 @@ func processSongbeamerSongs(songs map[string]churchtools.Song) map[string]church
 				ctAPISong := churchtools.GetSong(id)
 				ctSong = ctAPISong.ToSong()
 				songs[fmt.Sprintf("%d", ctSong.ID)] = ctSong
-				song.SetID(ctSong.ID, ctSong.GetDefaultArrangement())
-				log.Printf("Added new Song: %v", ctAPISong)
-				log.Printf("Converted to %v", ctSong)
-				log.Printf("Default Arrangement: %v", ctSong.GetDefaultArrangement())
-				log.Printf("SongID: %s", song.ID)
-				song.Save()
-				err := song.FixFilename()
+				err = song.UploadToArrangement(ctSong.GetDefaultArrangement(), duplicates)
 				if err != nil {
-					log.Printf("Cannot fix filename %s", err)
-					song.MoveToDuplicates(duplicates)
+					log.Fatalf("Error Uploading: %v", err)
 				}
-
-				ctAPIFile, err := churchtools.NewAPIFile(song.Filename)
-				util.CheckForError(err)
-				ctAPIFile.SetUploadName(song.GetFilenameWithoutArrangement())
-				ctAPIFile.DomainID = ctAPISong.GetDefaultArrangement().ID
-				ctAPIFile.DomainType = "song_arrangement"
-
-				err = ctAPIFile.Save()
-				util.CheckForError(err)
 				continue
 			}
-			err := song.FixFilename()
-			if err != nil {
-				log.Printf("Cannot fix filename %s", err)
-				song.MoveToDuplicates(duplicates)
-			}
-			count++
-			if count > 10 {
-				break
-			}
-			//
-			// break
+			log.Fatal("Shouldn't reach this")
+			// err := song.FixFilename()
+			// if err != nil {
+			// 	log.Printf("Cannot fix filename %s", err)
+			// 	song.MoveToDuplicates(duplicates)
+			// }
+			// count++
+			// if count > 10 {
+			// 	break
+			// }
 		}
 	}
 	return songs
