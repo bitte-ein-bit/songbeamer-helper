@@ -10,7 +10,6 @@ import (
 	"strconv"
 )
 
-
 // APIFile describes a file as given by the new ChurchTools REST API
 type APIFile struct {
 	DomainType string `json:"domainType"`
@@ -42,17 +41,33 @@ func (f *APIFile) getID() int {
 }
 
 // NewAPIFile generates a new APIFile struct
-func NewAPIFile(path string) (*APIFile, error) {
-	f := &APIFile{
+func NewAPIFile(path string) *APIFile {
+	return &APIFile{
 		filepath: path,
 		Name:     filepath.Base(path),
 	}
-	return f, nil
+}
+
+// NewSongAPIFile returns an song_arrangement type API file
+func NewSongAPIFile(path string, domainID int) *APIFile {
+	return &APIFile{
+		filepath:   path,
+		Name:       filepath.Base(path),
+		DomainType: "song_arrangement",
+		DomainID:   domainID,
+	}
 }
 
 // SetUploadName overrides the automatically selected name based on the local filename with a defined value
 func (f *APIFile) SetUploadName(name string) {
 	f.uploadName = name
+}
+
+func (f *APIFile) getUploadName() string {
+	if f.uploadName != "" {
+		return f.uploadName
+	}
+	return filepath.Base(f.filepath)
 }
 
 // Save submits the file to ChurchTools
@@ -66,7 +81,10 @@ func (f *APIFile) Save() error {
 	}
 	currentID := f.getID()
 	url := fmt.Sprintf("https://%s/api/files/%s/%d", domain, f.DomainType, f.DomainID)
-	request, err := newfileUploadRequest(url, nil, "files[]", f.filepath, "text/plain", f.uploadName)
+	request, err := newfileUploadRequest(url, nil, "files[]", f.filepath, "text/plain", f.getUploadName())
+	if err != nil {
+		return fmt.Errorf("Creating request failed: %w", err)
+	}
 
 	resp, err := client.Do(request)
 	if err != nil {
@@ -79,6 +97,7 @@ func (f *APIFile) Save() error {
 	resp.Body.Close()
 	fmt.Println(bodyContent)
 	if currentID != 0 {
+		log.Println("File has been updated, deleting old version")
 		f.Delete(currentID)
 	}
 	return nil
@@ -100,13 +119,13 @@ func (f APIFile) Delete(ID int) error {
 		"id":   fmt.Sprintf("%d", ID),
 	}
 	resp := postRequest(client, churchServiceAjaxURL, params)
-	log.Println(resp.Status)
+	// log.Println(resp.Status)
 	defer resp.Body.Close()
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println(string(data))
+	// log.Println(string(data))
 	r := apiResponse{}
 	jsonErr := json.Unmarshal(data, &r)
 	if jsonErr != nil {

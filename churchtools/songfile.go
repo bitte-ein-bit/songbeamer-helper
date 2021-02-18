@@ -1,6 +1,7 @@
 package churchtools
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -27,7 +28,7 @@ func (s *SongFile) ToAPIFile() APIFile {
 		DomainID:   s.DomainID,
 		Name:       s.Bezeichnung,
 		Filename:   s.Filename,
-		FileURL:    "",
+		FileURL:    fmt.Sprintf("https://lkg-pfuhl.church.tools/?q=public/filedownload&id=%d&filename=%s", s.ID, s.Filename),
 		uploadName: s.Filename,
 	}
 	return a
@@ -35,7 +36,8 @@ func (s *SongFile) ToAPIFile() APIFile {
 
 // GetModificationDate parses the date string returned by the API into a time struct
 func (s *SongFile) GetModificationDate() (t time.Time, err error) {
-	layout := "2006-01-02 15:04:05"
-	t, err = time.Parse(layout, s.ModifiedDate)
+	layout := "2006-01-02 15:04:05 -0700"
+	withTZ := fmt.Sprintf("%s +0100", s.ModifiedDate)
+	t, err = time.Parse(layout, withTZ)
 	return
 }
