@@ -1,5 +1,9 @@
 package churchtools
 
+import (
+	"time"
+)
+
 // A SongFile describes files attached to an SongArrangement
 type SongFile struct {
 	ID                     int    `json:"id,string"`
@@ -27,4 +31,11 @@ func (s *SongFile) ToAPIFile() APIFile {
 		uploadName: s.Filename,
 	}
 	return a
+}
+
+// GetModificationDate parses the date string returned by the API into a time struct
+func (s *SongFile) GetModificationDate() (t time.Time, err error) {
+	layout := "2006-01-02 15:04:05"
+	t, err = time.Parse(layout, s.ModifiedDate)
+	return
 }
