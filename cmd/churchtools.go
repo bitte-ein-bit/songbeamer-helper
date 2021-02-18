@@ -32,7 +32,6 @@ const (
 )
 
 func uploadToChurchTools() {
-	// churchtools.Login()
 	log.Println("syncing to ChurchTools")
 	songs, err := churchtools.GetSongs()
 	util.CheckForError(err)
@@ -43,37 +42,6 @@ func uploadToChurchTools() {
 	// songs = nil
 
 	_ = processSongbeamerSongs(songs)
-	log.Println("These are all songs known at the end of processing:")
-	// log.Println(songs)
-	// id := churchtools.AddSong("test1", "jonathan", "", "", "", "", "")
-	// id := 72
-	// log.Println(id)
-	// s := churchtools.Song{
-	// 	ID: 75,
-	// }
-	// err = s.Delete()
-	// util.CheckForError(err)
-	// song := churchtools.GetSong(id)
-	// arrangement := song.Arrangements[0]
-	// arrangement.Duration = arrangement.Duration + 1
-	// churchtools.EditArrangement(arrangement, song.ID)
-	// for _, file := range arrangement.Files {
-	// 	log.Println(file.Name)
-	// 	file.LoadFromFile("songs/All day.sng")
-	// 	file.Save()
-	// }
-
-	// // songfile, err := churchtools.NewAPIFile("songs/All day.sng")
-	// // if err != nil {
-	// // 	log.Fatal(err)
-	// // }
-	// songfile.DomainID = arrangement.ID
-	// songfile.DomainType = "song_arrangement"
-	// log.Println(songfile)
-	// err = songfile.Save()
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
 	log.Println("done")
 }
 
@@ -271,15 +239,6 @@ func processSongbeamerSongs(songs map[string]churchtools.Song) map[string]church
 		}
 		song.MoveToDuplicates(duplicates)
 		log.Fatal("Shouldn't reach this")
-		// err := song.FixFilename()
-		// if err != nil {
-		// 	log.Printf("Cannot fix filename %s", err)
-		// 	song.MoveToDuplicates(duplicates)
-		// }
-		// count++
-		// if count > 10 {
-		// 	break
-		// }
 	}
 	return songs
 }
