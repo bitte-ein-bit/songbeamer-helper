@@ -4,6 +4,7 @@ import (
 	"math"
 )
 
+// APISongArrangement represents a song arrangement using the REST API
 type APISongArrangement struct {
 	ID               int       `json:"id"`
 	Name             string    `json:"name"`
@@ -17,6 +18,7 @@ type APISongArrangement struct {
 	Links            []APIFile `json:"links,omitempty"`
 }
 
+// ToArrangement converts to an old style API arrangement
 func (a *APISongArrangement) ToArrangement() (ret SongArrangement) {
 	d := 0
 	if a.Default {

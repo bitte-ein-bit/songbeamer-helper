@@ -116,7 +116,7 @@ func processSongbeamerSongs(songs map[string]churchtools.Song) map[string]church
 	for _, file := range files {
 		if filepath.Ext(file.Name()) == ".sng" {
 			fullpath := filepath.Join(path, file.Name())
-			song := songbeamer.SongbeamerSong{}
+			song := songbeamer.Song{}
 			song.LoadFromFile(fullpath)
 			log.Printf("Working on %s", song.Title)
 			if song.ID != "" {
@@ -131,6 +131,17 @@ func processSongbeamerSongs(songs map[string]churchtools.Song) map[string]church
 				// -> the file has been renamed to create a new arrangement
 				log.Printf("Seems song was renamed to new arrangement: %s", a)
 				ctSong := filterSongs(songs, "ID", song.ChurchToolsID)
+				if ctSong.ID == 0 {
+					song.ID = ""
+					song.Save()
+					song.FixFilename()
+					if err != nil {
+						log.Printf("Cannot fix filename %s", err)
+						song.MoveToDuplicates(duplicates)
+					}
+					log.Printf("CT Song ID can't be found, resetting ID and skip")
+					continue
+				}
 				arrangementID := 0
 				var arrangement churchtools.SongArrangement
 				for _, arrange := range ctSong.Arrangements {
@@ -144,13 +155,14 @@ func processSongbeamerSongs(songs map[string]churchtools.Song) map[string]church
 					arrangementID, err = ctSong.AddArrangement(a)
 					util.CheckForError(err)
 					arrangement = churchtools.SongArrangement{
-						ID: arrangementID,
+						ID:          arrangementID,
 						Bezeichnung: a,
 					}
 				}
 				song.SetID(song.ChurchToolsID, arrangement)
 				song.Save()
 				ctAPIFile, err := churchtools.NewAPIFile(song.Filename)
+				ctAPIFile.SetUploadName(song.GetFilenameWithoutArrangement())
 				util.CheckForError(err)
 				ctAPIFile.DomainID = arrangementID
 				ctAPIFile.DomainType = "song_arrangement"
@@ -200,6 +212,7 @@ func processSongbeamerSongs(songs map[string]churchtools.Song) map[string]church
 				}
 
 				ctAPIFile, err := churchtools.NewAPIFile(song.Filename)
+				ctAPIFile.SetUploadName(song.GetFilenameWithoutArrangement())
 				util.CheckForError(err)
 				ctAPIFile.DomainID = ctAPISong.GetDefaultArrangement().ID
 				ctAPIFile.DomainType = "song_arrangement"
@@ -243,6 +256,7 @@ func processSongbeamerSongs(songs map[string]churchtools.Song) map[string]church
 
 				ctAPIFile, err := churchtools.NewAPIFile(song.Filename)
 				util.CheckForError(err)
+				ctAPIFile.SetUploadName(song.GetFilenameWithoutArrangement())
 				ctAPIFile.DomainID = ctAPISong.GetDefaultArrangement().ID
 				ctAPIFile.DomainType = "song_arrangement"
 

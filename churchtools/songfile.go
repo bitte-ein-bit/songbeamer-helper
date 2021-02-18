@@ -15,3 +15,16 @@ type SongFile struct {
 	DeletionDate           string `json:"deletion_date,omitempty"`
 	ModifiedUsername       string `json:"modified_username"`
 }
+
+// ToAPIFile converts an old school file to the new rest api variant
+func (s *SongFile) ToAPIFile() APIFile {
+	a := APIFile{
+		DomainType: s.DomainType,
+		DomainID:   s.DomainID,
+		Name:       s.Bezeichnung,
+		Filename:   s.Filename,
+		FileURL:    "",
+		uploadName: s.Filename,
+	}
+	return a
+}

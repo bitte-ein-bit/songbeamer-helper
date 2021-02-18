@@ -23,6 +23,7 @@ type Song struct {
 	Arrangements   map[string]SongArrangement `json:"arrangement"`
 }
 
+// Delete deletes the song from ChurchTools
 func (s *Song) Delete() error {
 	if s.ID == 0 {
 		return fmt.Errorf("Cannot delete file with ID 0")
@@ -50,6 +51,7 @@ func (s *Song) Delete() error {
 	return nil
 }
 
+// GetDefaultArrangement retrieves the arrangement marked as default
 func (s *Song) GetDefaultArrangement() (ret SongArrangement) {
 	for _, value := range s.Arrangements {
 		if value.Default == 1 {
@@ -59,6 +61,7 @@ func (s *Song) GetDefaultArrangement() (ret SongArrangement) {
 	return
 }
 
+// AddArrangement adds an additional arrangement to an existing song on ChurchTools. It does return the ID of the new arrangement
 func (s *Song) AddArrangement(name string) (int, error) {
 	params := map[string]string{
 		"func":        "addArrangement",

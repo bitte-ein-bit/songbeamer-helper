@@ -15,7 +15,8 @@ import (
 	"github.com/bitte-ein-bit/songbeamer-helper/util"
 )
 
-type SongbeamerSong struct {
+// Song represents the data stored inside an sng file
+type Song struct {
 	ID                       string
 	ChurchToolsID            int
 	ChurchToolsArrangementID int
@@ -34,8 +35,8 @@ type SongbeamerSong struct {
 	Headers                  map[string]string
 }
 
-// LoadFromFile loads a sng file into a SongbeamerSong struct
-func (s *SongbeamerSong) LoadFromFile(filename string) {
+// LoadFromFile loads a sng file into a Song struct
+func (s *Song) LoadFromFile(filename string) {
 	inHeader := true
 	var verse []string
 	s.Filename = filename
@@ -107,7 +108,7 @@ func (s *SongbeamerSong) LoadFromFile(filename string) {
 }
 
 // FixFilename moves files arround according to their name
-func (s *SongbeamerSong) FixFilename() error {
+func (s *Song) FixFilename() error {
 	id := ""
 	if s.ChurchToolsArrangement != "" {
 		id = fmt.Sprintf(" - %s", s.ChurchToolsArrangement)
@@ -126,8 +127,13 @@ func (s *SongbeamerSong) FixFilename() error {
 	return nil
 }
 
+// GetFilenameWithoutArrangement constructs the filename without the arrangement addendum
+func (s *Song) GetFilenameWithoutArrangement() string {
+	return fmt.Sprintf("%s.sng", strings.Replace(s.Title, "/", "_", -1))
+}
+
 // MoveToDuplicates moves the Songbeamer file out of the way
-func (s *SongbeamerSong) MoveToDuplicates(path string) error {
+func (s *Song) MoveToDuplicates(path string) error {
 	f, err := os.Open(s.Filename)
 	if err != nil {
 		log.Fatal(err)
@@ -146,7 +152,7 @@ func (s *SongbeamerSong) MoveToDuplicates(path string) error {
 }
 
 // SetID adds a ChurchTools Song ID to a Songbeamer File
-func (s *SongbeamerSong) SetID(songID int, arrangement churchtools.SongArrangement) {
+func (s *Song) SetID(songID int, arrangement churchtools.SongArrangement) {
 	s.ChurchToolsID = songID
 	s.ChurchToolsArrangementID = arrangement.ID
 	s.ChurchToolsArrangement = arrangement.Bezeichnung
@@ -154,7 +160,7 @@ func (s *SongbeamerSong) SetID(songID int, arrangement churchtools.SongArrangeme
 }
 
 // SetKeyOfArrangement adds a Key to a Songbeamer File
-func (s *SongbeamerSong) SetKeyOfArrangement(arrangement churchtools.SongArrangement) {
+func (s *Song) SetKeyOfArrangement(arrangement churchtools.SongArrangement) {
 	nT := strings.TrimSpace(arrangement.Tonality)
 	if nT == "" {
 		return
@@ -183,7 +189,8 @@ func nonEmptyHeader(name, value string) string {
 	return ""
 }
 
-func (s *SongbeamerSong) Save() error {
+// Save updates the sng file on disk
+func (s *Song) Save() error {
 	fileContent := string('\uFEFF') // Add BOM for Songbeamer
 
 	fileContent += nonEmptyHeader("Author", s.Author)
@@ -221,7 +228,7 @@ func (s *SongbeamerSong) Save() error {
 	return err
 }
 
-func (s *SongbeamerSong) ExtractArrangementFromFilename() string {
+func (s *Song) ExtractArrangementFromFilename() string {
 	re := regexp.MustCompile("(.+) - (.+)\\.sng")
 	data := re.FindStringSubmatch(s.Filename)
 	if len(data) == 0 {
