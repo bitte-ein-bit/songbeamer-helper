@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"time"
 )
 
 // The Song is describing the api response of a Song. It is further defined by one or more Arrangements
@@ -89,4 +90,11 @@ func (s *Song) AddArrangement(name string) (int, error) {
 		ID:          r.ID,
 	}
 	return r.ID, nil
+}
+
+// GetModificationDate parses the date string returned by the API into a time struct
+func (s *Song) GetModificationDate() (t time.Time, err error) {
+	layout := "2006-01-02 15:04:05"
+	t, err = time.Parse(layout, s.ModifiedDate)
+	return
 }
