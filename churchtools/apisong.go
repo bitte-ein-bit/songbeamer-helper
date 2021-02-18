@@ -18,6 +18,7 @@ type APISong struct {
 	Arrangements []APISongArrangement `json:"arrangements"`
 }
 
+// GetDefaultArrangement returns the APISongArrangement that is marked as default. It's unsure if the API returns nothing
 func (s *APISong) GetDefaultArrangement() (ret APISongArrangement) {
 	for _, value := range s.Arrangements {
 		if value.Default {
@@ -29,6 +30,7 @@ func (s *APISong) GetDefaultArrangement() (ret APISongArrangement) {
 	return
 }
 
+// ToSong converts an APISong to a Song (old to new API)
 func (s *APISong) ToSong() (ret Song) {
 	a := make(map[string]SongArrangement)
 	for _, value := range s.Arrangements {

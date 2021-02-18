@@ -146,7 +146,7 @@ func escapeQuotes(s string) string {
 }
 
 // NewfileUploadRequest Creates a new file upload http request with optional extra params
-func newfileUploadRequest(uri string, params map[string]string, paramName, path, contentType string) (*http.Request, error) {
+func newfileUploadRequest(uri string, params map[string]string, paramName, path, contentType string, uploadName ...string) (*http.Request, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -161,12 +161,18 @@ func newfileUploadRequest(uri string, params map[string]string, paramName, path,
 		return nil, err
 	}
 
+	fileName := fi.Name()
+
+	if len(uploadName) > 0 {
+		fileName = uploadName[0]
+	}
+
 	body := new(bytes.Buffer)
 	writer := multipart.NewWriter(body)
 	h := make(textproto.MIMEHeader)
 	h.Set("Content-Disposition",
 		fmt.Sprintf(`form-data; name="%s"; filename="%s"`,
-			escapeQuotes(paramName), escapeQuotes(fi.Name())))
+			escapeQuotes(paramName), escapeQuotes(fileName)))
 	h.Set("Content-Type", contentType)
 	part, err := writer.CreatePart(h)
 	if err != nil {

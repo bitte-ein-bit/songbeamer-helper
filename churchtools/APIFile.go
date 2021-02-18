@@ -5,20 +5,21 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"net/http"
 	"net/url"
 	"path/filepath"
 	"strconv"
 )
 
+
+// APIFile describes a file as given by the new ChurchTools REST API
 type APIFile struct {
 	DomainType string `json:"domainType"`
 	DomainID   int    `json:"domainID,string"`
 	filepath   string
-	client     *http.Client
 	Name       string `json:"name"`
 	Filename   string `json:"filename"`
 	FileURL    string `json:"fileUrl,omitempty"`
+	uploadName string
 }
 
 func (f *APIFile) getID() int {
@@ -40,15 +41,21 @@ func (f *APIFile) getID() int {
 	return 0
 }
 
+// NewAPIFile generates a new APIFile struct
 func NewAPIFile(path string) (*APIFile, error) {
 	f := &APIFile{
 		filepath: path,
-		client:   client,
 		Name:     filepath.Base(path),
 	}
 	return f, nil
 }
 
+// SetUploadName overrides the automatically selected name based on the local filename with a defined value
+func (f *APIFile) SetUploadName(name string) {
+	f.uploadName = name
+}
+
+// Save submits the file to ChurchTools
 func (f *APIFile) Save() error {
 	// AddSongFile Upload and attach a file to a ChurchTools song
 	if f.DomainType == "" {
@@ -57,15 +64,11 @@ func (f *APIFile) Save() error {
 	if f.DomainID == 0 {
 		return fmt.Errorf("Please set DomainID")
 	}
-	if f.client == nil {
-		// return fmt.Errorf("Client is uninitialized")
-		f.client = client
-	}
 	currentID := f.getID()
 	url := fmt.Sprintf("https://%s/api/files/%s/%d", domain, f.DomainType, f.DomainID)
-	request, err := newfileUploadRequest(url, nil, "files[]", f.filepath, "text/plain")
+	request, err := newfileUploadRequest(url, nil, "files[]", f.filepath, "text/plain", f.uploadName)
 
-	resp, err := f.client.Do(request)
+	resp, err := client.Do(request)
 	if err != nil {
 		return fmt.Errorf("Save failed: %w", err)
 	}
@@ -81,28 +84,22 @@ func (f *APIFile) Save() error {
 	return nil
 }
 
+// LoadFromFile sets the name as well as the filepath attribute
 func (f *APIFile) LoadFromFile(path string) {
 	f.filepath = path
 	f.Name = filepath.Base(path)
 }
 
-func (f *APIFile) SetHTTPClient(client *http.Client) {
-	f.client = client
-}
-
+// Delete removes a file by ID from ChurchTools
 func (f APIFile) Delete(ID int) error {
 	if ID == 0 {
 		return fmt.Errorf("Cannot delete file with ID 0")
-	}
-	if f.client == nil {
-		// return fmt.Errorf("Client is uninitialized")
-		f.client = client
 	}
 	params := map[string]string{
 		"func": "delFile",
 		"id":   fmt.Sprintf("%d", ID),
 	}
-	resp := postRequest(f.client, churchServiceAjaxURL, params)
+	resp := postRequest(client, churchServiceAjaxURL, params)
 	log.Println(resp.Status)
 	defer resp.Body.Close()
 	data, err := ioutil.ReadAll(resp.Body)
