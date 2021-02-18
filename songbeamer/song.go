@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/bitte-ein-bit/songbeamer-helper/churchtools"
@@ -16,8 +17,8 @@ import (
 
 type SongbeamerSong struct {
 	ID                       string
-	ChurchToolsID            string
-	ChurchToolsArrangementID string
+	ChurchToolsID            int
+	ChurchToolsArrangementID int
 	ChurchToolsArrangement   string
 	CCLI                     string
 	Title                    string
@@ -60,9 +61,17 @@ func (s *SongbeamerSong) LoadFromFile(filename string) {
 			case "ID":
 				s.ID = header[1]
 				tmp := strings.SplitN(header[1], "-", 3)
-				s.ChurchToolsID = tmp[0]
+				ID, err := strconv.Atoi(tmp[0])
+				if err != nil {
+					fmt.Println("Invalid ID field, ignoring")
+				}
+				s.ChurchToolsID = ID
 				if len(tmp) > 1 {
-					s.ChurchToolsArrangementID = tmp[1]
+					ID, err = strconv.Atoi(tmp[1])
+					if err != nil {
+						fmt.Println("Invalid ID field, ignoring")
+					}
+					s.ChurchToolsArrangementID = ID
 					s.ChurchToolsArrangement = tmp[2]
 				}
 			case "CCLI":
@@ -138,10 +147,10 @@ func (s *SongbeamerSong) MoveToDuplicates(path string) error {
 
 // SetID adds a ChurchTools Song ID to a Songbeamer File
 func (s *SongbeamerSong) SetID(songID int, arrangement churchtools.SongArrangement) {
-	s.ChurchToolsID = fmt.Sprintf("%d", songID)
-	s.ChurchToolsArrangementID = fmt.Sprintf("%d", arrangement.ID)
+	s.ChurchToolsID = songID
+	s.ChurchToolsArrangementID = arrangement.ID
 	s.ChurchToolsArrangement = arrangement.Bezeichnung
-	s.ID = fmt.Sprintf("%s-%s-%s", s.ChurchToolsID, s.ChurchToolsArrangementID, s.ChurchToolsArrangement)
+	s.ID = fmt.Sprintf("%d-%d-%s", s.ChurchToolsID, s.ChurchToolsArrangementID, s.ChurchToolsArrangement)
 }
 
 // SetKeyOfArrangement adds a Key to a Songbeamer File

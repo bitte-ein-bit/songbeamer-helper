@@ -58,3 +58,32 @@ func (s *Song) GetDefaultArrangement() (ret SongArrangement) {
 	}
 	return
 }
+
+func (s *Song) AddArrangement(name string) (int, error) {
+	params := map[string]string{
+		"func":        "addArrangement",
+		"bezeichnung": name,
+		"song_id":     fmt.Sprintf("%d", s.ID),
+	}
+	resp := postRequest(client, churchServiceAjaxURL, params)
+	log.Println(resp.Status)
+	defer resp.Body.Close()
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println(string(data))
+	r := addResponse{}
+	jsonErr := json.Unmarshal(data, &r)
+	if jsonErr != nil {
+		return 0, fmt.Errorf("unable to parse value: %q, error: %s", string(data), jsonErr.Error())
+	}
+	if r.Status != "success" {
+		return 0, fmt.Errorf("Cannot add arrangement: %s", r.Message)
+	}
+	s.Arrangements[fmt.Sprintf("%d", r.ID)] = SongArrangement{
+		Bezeichnung: name,
+		ID:          r.ID,
+	}
+	return r.ID, nil
+}

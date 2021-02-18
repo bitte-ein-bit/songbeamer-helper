@@ -70,8 +70,9 @@ type apiResponse struct {
 }
 
 type addResponse struct {
-	Status string `json:"status"`
-	ID     int    `json:"data,string"`
+	Status  string `json:"status"`
+	Message string `json:"message,omitempty"`
+	ID      int    `json:"data,string"`
 }
 
 type getSongResponse struct {
