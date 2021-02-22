@@ -126,7 +126,7 @@ func (f APIFile) Delete(ID int) error {
 		log.Fatal(err)
 	}
 	// log.Println(string(data))
-	r := apiResponse{}
+	r := songResponse{}
 	jsonErr := json.Unmarshal(data, &r)
 	if jsonErr != nil {
 		return fmt.Errorf("unable to parse value: %q, error: %s", string(data), jsonErr.Error())

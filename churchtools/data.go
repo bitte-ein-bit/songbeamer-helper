@@ -63,7 +63,7 @@ type songsdata struct {
 //     "tags": []
 //   }
 // `)
-type apiResponse struct {
+type songResponse struct {
 	Status  string    `json:"status"`
 	Message string    `json:"message,omitempty"`
 	Data    songsdata `json:"data"`
