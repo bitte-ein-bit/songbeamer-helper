@@ -16,9 +16,13 @@ var cmdUpdate = &cobra.Command{
 	Short: "update helper",
 	Long:  `Update this tool.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Printf("Hello world I am currently version %v", updater.CurrentVersion)
+		version, err := updater.UpdateAvailable()
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("Hello world I am currently version %s, %s is available", updater.CurrentVersion, version)
 		updater.BackgroundRun()
-		log.Printf("Next run, I should be %v", updater.Info.Version)
+		log.Printf("Next run, I should be %s pulled from %s", updater.Info.Version, updateURL)
 	},
 }
 
