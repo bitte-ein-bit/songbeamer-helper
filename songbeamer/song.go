@@ -261,6 +261,69 @@ func (s *Song) GetModificationDate() (t time.Time, err error) {
 	if err != nil {
 		return
 	}
-	t = fi.ModTime()
+	t = fi.ModTime().Round(time.Second)
 	return
+}
+
+// Validate makes sure relevant data from CT is embedded
+func (s *Song) Validate(apiSong churchtools.APISong, a churchtools.APISongArrangement) (err error) {
+	changed := false
+	if s.ChurchToolsID != apiSong.ID || s.ChurchToolsArrangementID != a.ID || s.ChurchToolsArrangement != a.Name {
+		log.Println("Setze ID Feld anhand von ChurchTools")
+		s.SetID(apiSong.ID, a.ToArrangement())
+		changed = true
+	}
+	if s.CCLI != apiSong.CCLI {
+		log.Println("Setze CCLI Feld anhand von ChurchTools")
+		s.CCLI = apiSong.CCLI
+		changed = true
+	}
+	if s.Author != apiSong.Author {
+		log.Println("Setze Autor Feld anhand von ChurchTools")
+		s.Author = apiSong.Author
+		changed = true
+	}
+
+	if s.Title != apiSong.Bezeichnung {
+		log.Println("Setze Titel Feld anhand von ChurchTools")
+		s.Title = apiSong.Bezeichnung
+		changed = true
+	}
+
+	if s.Copyright != apiSong.Copyright {
+		log.Println("Setze Copyright Feld anhand von ChurchTools")
+		s.Copyright = apiSong.Copyright
+		changed = true
+	}
+
+	if changed {
+		log.Println("Datei geändert, speichere neuere Version")
+		err = s.Save()
+		if err != nil {
+			return fmt.Errorf("Cannot save SNG file: %w", err)
+		}
+	}
+	return
+}
+
+func (s *Song) UploadIfNeeded(a *churchtools.APIFile, lastChanged time.Time) {
+	uploadNeeded := false
+	if a.Name != s.GetFilenameWithoutArrangement() {
+		log.Printf("Dateiname auf ChurchTools (%s) stimmt nicht, korrigiere zu %s", a.Name, s.GetFilenameWithoutArrangement())
+		a.SetUploadName(s.GetFilenameWithoutArrangement())
+		uploadNeeded = true
+	}
+
+	ctDate := lastChanged.Round(time.Second)
+	sngDate, _ := s.GetModificationDate()
+	if sngDate.After(ctDate) {
+		log.Printf("CT is older: %v < %v", ctDate, sngDate)
+		uploadNeeded = true
+	}
+
+	if uploadNeeded {
+		a.LoadFromFile(s.Filename)
+		a.Save()
+	}
+
 }
