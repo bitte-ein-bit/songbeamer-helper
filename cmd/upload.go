@@ -14,10 +14,10 @@ import (
 )
 
 func init() {
-	RootCmd.AddCommand(cmdCTGet)
+	RootCmd.AddCommand(cmdCTUpload)
 }
 
-var cmdCTGet = &cobra.Command{
+var cmdCTUpload = &cobra.Command{
 	Use:   "ct-push",
 	Short: "Push songs to ChurchTools",
 	Long:  `Sync changes to ChurchTools`,

@@ -23,7 +23,7 @@ func GetSongs() (map[string]Song, error) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	r := apiResponse{}
+	r := songResponse{}
 	jsonErr := json.Unmarshal(data, &r)
 	if jsonErr != nil {
 		return nil, fmt.Errorf("unable to parse value: %q, error: %s", string(data), jsonErr.Error())
@@ -117,7 +117,7 @@ func EditArrangement(arrangement APISongArrangement, songID int) {
 		log.Fatal(err)
 	}
 	log.Println(string(data))
-	r := apiResponse{}
+	r := songResponse{}
 	jsonErr := json.Unmarshal(data, &r)
 	if jsonErr != nil {
 		log.Fatalf("unable to parse value: %q, error: %s", string(data), jsonErr.Error())
