@@ -78,3 +78,11 @@ type addResponse struct {
 type getSongResponse struct {
 	Data APISong `json:"data"`
 }
+
+type getSongsResponse struct {
+	Data []APISong `json:"data"`
+}
+
+type csrftoken struct {
+	Token string `json:"data"`
+}

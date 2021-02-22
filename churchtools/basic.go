@@ -63,10 +63,6 @@ func login() {
 	log.Println("Login successful")
 }
 
-type csrftoken struct {
-	Token string `json:"data"`
-}
-
 func getCSRFToken() string {
 	if csrftokens == nil {
 		csrftokens = make(map[string]string)
@@ -87,7 +83,7 @@ func getCSRFToken() string {
 	if jsonErr != nil {
 		log.Fatalf("unable to parse value: %q, error: %s", string(data), jsonErr.Error())
 	}
-	log.Printf("Token: %s\n", csrftoken1.Token)
+	// log.Printf("Token: %s\n", csrftoken1.Token)
 	csrftokens[domain] = csrftoken1.Token
 	return csrftoken1.Token
 }
