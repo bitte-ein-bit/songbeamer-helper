@@ -91,11 +91,11 @@ func (f *APIFile) Save() error {
 		return fmt.Errorf("Save failed: %w", err)
 	}
 	var bodyContent []byte
-	fmt.Println(resp.StatusCode)
-	fmt.Println(resp.Header)
+	// fmt.Println(resp.StatusCode)
+	// fmt.Println(resp.Header)
 	resp.Body.Read(bodyContent)
 	resp.Body.Close()
-	fmt.Println(bodyContent)
+	// fmt.Println(bodyContent)
 	if currentID != 0 {
 		log.Println("File has been updated, deleting old version")
 		f.Delete(currentID)
