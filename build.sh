@@ -4,7 +4,7 @@ TEMP=$(mktemp -d build-XXXXX)
 trap 'rm -rf $TEMP' EXIT
 
 VERSION=$(git describe --tags --always --dirty)
-flags=(-ldflags="-X github.com/bitte-ein-bit/songbeamer-helper/cmd.version=$VERSION -X github.com/bitte-ein-bit/songbeamer-helper/cmd.updateURL=https://software.ec-pfuhl.de")
+flags=(-ldflags="-X github.com/bitte-ein-bit/songbeamer-helper/cmd.version=$VERSION -X github.com/bitte-ein-bit/songbeamer-helper/cmd.updateURL=https://software.ec-pfuhl.de/")
 
 export GOARCH=amd64
 for GOOS in darwin windows; do
