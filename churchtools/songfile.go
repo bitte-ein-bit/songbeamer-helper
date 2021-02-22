@@ -39,5 +39,6 @@ func (s *SongFile) GetModificationDate() (t time.Time, err error) {
 	layout := "2006-01-02 15:04:05 -0700"
 	withTZ := fmt.Sprintf("%s +0100", s.ModifiedDate)
 	t, err = time.Parse(layout, withTZ)
+	t = t.Round(time.Second)
 	return
 }
