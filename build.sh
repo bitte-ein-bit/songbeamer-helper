@@ -15,4 +15,4 @@ done
 unset GOARCH GOOS
 echo "Making self update"
 go-selfupdate "$TEMP" "$VERSION"
-aws s3 sync public/ s3://software.ec-pfuhl.de/songbeamer-helper/ --delete --acl public-read
+aws s3 sync public/ s3://software.ec-pfuhl.de/songbeamer-helper/ --delete
