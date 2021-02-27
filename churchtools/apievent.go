@@ -44,3 +44,26 @@ func (e *Event) GetSongs() []APISong {
 	}
 	return r.Data
 }
+
+func (e *Event) GetAgenda() {
+	if e.ID == 0 {
+		log.Fatal("Cannot load songs for uninitialzed event")
+	}
+	if client == nil {
+		login()
+	}
+
+	resp := getRequest(fmt.Sprintf("https://%s/api/events/%d/agenda/songs", domain, e.ID), nil)
+	defer resp.Body.Close()
+	data, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	r := getSongsResponse{}
+	jsonErr := json.Unmarshal(data, &r)
+	if jsonErr != nil {
+		log.Fatalf("unable to parse value: %q, error: %s", string(data), jsonErr.Error())
+	}
+	return r.Data
+}
