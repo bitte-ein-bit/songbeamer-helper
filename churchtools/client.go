@@ -120,7 +120,7 @@ func (c *CTClient) PostRequest(url string, params map[string]string) http.Respon
 	}
 	req, _ := http.NewRequest("POST", url, nil)
 	if params != nil {
-		// fmt.Println(params)
+		// log.Infof(params)
 		q := req.URL.Query()
 		for key, value := range params {
 			q.Add(key, value)

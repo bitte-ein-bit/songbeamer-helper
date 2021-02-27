@@ -45,7 +45,8 @@ func (e *Event) GetSongs() []APISong {
 	return r.Data
 }
 
-func (e *Event) GetAgenda() {
+// GetAgenda retuns the Agenda for the Event
+func (e *Event) GetAgenda() APIAgenda {
 	if e.ID == 0 {
 		log.Fatal("Cannot load songs for uninitialzed event")
 	}
@@ -53,17 +54,18 @@ func (e *Event) GetAgenda() {
 		login()
 	}
 
-	resp := getRequest(fmt.Sprintf("https://%s/api/events/%d/agenda/songs", domain, e.ID), nil)
+	// TODO: no Agenda setup yet...
+	resp := getRequest(fmt.Sprintf("https://%s/api/events/%d/agenda", domain, e.ID), nil)
 	defer resp.Body.Close()
 	data, err := ioutil.ReadAll(resp.Body)
 
 	if err != nil {
 		log.Fatal(err)
 	}
-	r := getSongsResponse{}
+	r := apiAgendaResponse{}
 	jsonErr := json.Unmarshal(data, &r)
 	if jsonErr != nil {
 		log.Fatalf("unable to parse value: %q, error: %s", string(data), jsonErr.Error())
 	}
-	return r.Data
+	return r.Agenda
 }

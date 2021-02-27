@@ -9,8 +9,9 @@ import (
 	"time"
 
 	"github.com/bitte-ein-bit/songbeamer-helper/churchtools"
+	"github.com/bitte-ein-bit/songbeamer-helper/log"
 	"github.com/bitte-ein-bit/songbeamer-helper/songbeamer"
-	"github.com/google/martian/log"
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -24,20 +25,27 @@ var cmdCTDownload = &cobra.Command{
 	Short: "Download songs for event from Churchtools",
 	Long:  `Downloads songs from CT that are listed on the selected event.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		downloadFromCTEvent()
+		event := selectCTEvent()
+		downloadSongsForCTEvent(event)
+		createSongbeamerAgenda(event)
 	},
 }
 
-func downloadFromCTEvent() {
+func selectCTEvent() (event churchtools.Event) {
 	events := churchtools.GetEvents(8)
 	if len(events) == 0 {
-		fmt.Printf("In den nächsten 6 Tagen wurden keine Verantstaltungen gefunden.")
+		log.Errorf("In den nächsten 6 Tagen wurden keine Verantstaltungen gefunden.")
 		return
 	}
-	event := ask(events)
+	event = ask(events)
+	return
+}
+
+func downloadSongsForCTEvent(event churchtools.Event) {
 	songs := event.GetSongs()
 	if len(songs) == 0 {
-		fmt.Print("Es sind keine Songs in der Agenda hinterlegt.")
+		log.Errorf("Es sind keine Songs in der Agenda hinterlegt.")
+		return
 	}
 
 	c := churchtools.CTClient{}
@@ -49,7 +57,6 @@ func downloadFromCTEvent() {
 		if err != nil {
 			log.Errorf("Cannot download song: %v", err)
 		}
-
 	}
 }
 
@@ -64,20 +71,20 @@ func ask(events []churchtools.Event) (event churchtools.Event) {
 
 		_, err := fmt.Scanln(&input)
 		if err != nil {
-			fmt.Printf("Fehlerhafte Eingabe: %v\n", err)
+			log.Errorf("Fehlerhafte Eingabe: %v\n", err)
 			continue
 		}
 
 		// Verify we got an integer.
 		selected, err := strconv.Atoi(input)
 		if err != nil {
-			fmt.Printf("Ungültige Eingabe '%s'\n", input)
+			log.Errorf("Ungültige Eingabe '%s'\n", input)
 			continue
 		}
 
 		// Verify selection is within range.
 		if selected < 1 || selected > len(events) {
-			fmt.Printf("Ungültiger Wert %d. Gültige Werte sind: 1-%d\n", selected, len(events))
+			log.Errorf("Ungültiger Wert %d. Gültige Werte sind: 1-%d\n", selected, len(events))
 			continue
 		}
 
@@ -105,7 +112,7 @@ func DownloadSongbeamerFile(c churchtools.CTClient, s churchtools.APISong, path 
 			last := resp.Header.Get("Last-Modified")
 			lastTime, err := time.Parse(time.RFC1123, last)
 			if err != nil {
-				fmt.Println(err)
+				log.Warnf("Kann letztes Änderungsdatum nicht auswerten, verwende jetzt")
 				lastTime = time.Now()
 			}
 
@@ -118,7 +125,7 @@ func DownloadSongbeamerFile(c churchtools.CTClient, s churchtools.APISong, path 
 			io.Copy(out, resp.Body)
 			err = os.Chtimes(filename, lastTime, lastTime)
 			if err != nil {
-				fmt.Printf("Cannot adjust time on file. Ignoring error: %s", err)
+				log.Warnf("Cannot adjust time on file. Ignoring error: %s", err)
 			}
 			sng := songbeamer.Song{}
 			sng.LoadFromFile(filename)
@@ -128,4 +135,10 @@ func DownloadSongbeamerFile(c churchtools.CTClient, s churchtools.APISong, path 
 		}
 	}
 	return
+}
+
+func createSongbeamerAgenda(event churchtools.Event) {
+	color.Set(color.FgRed)
+	log.Infof("Das Erstellen des Ablaufplans ist noch nicht implementiert.")
+	log.Infof("Bitte lade den Ablaufplan aus Churchtools herunter")
 }

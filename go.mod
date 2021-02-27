@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	github.com/dimchansky/utfbom v1.1.1
-	github.com/google/martian v2.1.0+incompatible
+	github.com/fatih/color v1.10.0
 	github.com/igungor/chardet v0.0.0-20150127141229-e7b197e6f6a5
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/sanbornm/go-selfupdate v0.0.0-20210106163404-c9b625feac49

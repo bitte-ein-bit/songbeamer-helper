@@ -4,7 +4,6 @@ import (
 	"crypto/md5"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -13,6 +12,7 @@ import (
 	"time"
 
 	"github.com/bitte-ein-bit/songbeamer-helper/churchtools"
+	"github.com/bitte-ein-bit/songbeamer-helper/log"
 	"github.com/bitte-ein-bit/songbeamer-helper/util"
 )
 
@@ -65,13 +65,13 @@ func (s *Song) LoadFromFile(filename string) {
 				tmp := strings.SplitN(header[1], "-", 3)
 				ID, err := strconv.Atoi(tmp[0])
 				if err != nil {
-					fmt.Println("Invalid ID field, ignoring")
+					log.Infof("Invalid ID field, ignoring")
 				}
 				s.ChurchToolsID = ID
 				if len(tmp) > 1 {
 					ID, err = strconv.Atoi(tmp[1])
 					if err != nil {
-						fmt.Println("Invalid ID field, ignoring")
+						log.Infof("Invalid ID field, ignoring")
 					}
 					s.ChurchToolsArrangementID = ID
 					s.ChurchToolsArrangement = tmp[2]
@@ -116,7 +116,7 @@ func (s *Song) FixFilename() error {
 	}
 	filenameByTitle := fmt.Sprintf("%s%s.sng", strings.Replace(s.Title, "/", "_", -1), id)
 	if strings.ToLower(filepath.Base(s.Filename)) != strings.ToLower(filenameByTitle) {
-		log.Printf("%s should be named %s", s.Filename, filenameByTitle)
+		log.Debugf("%s should be named %s", s.Filename, filenameByTitle)
 		newFilename := fmt.Sprintf("%s/%s", filepath.Dir(s.Filename), filenameByTitle)
 		if _, err := os.Stat(newFilename); err == nil {
 			return fmt.Errorf("New File already exists: %s", newFilename)
@@ -137,7 +137,7 @@ func (s *Song) GetFilenameWithoutArrangement() string {
 func (s *Song) MoveToDuplicates(path string) error {
 	f, err := os.Open(s.Filename)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("%s", err)
 	}
 	defer f.Close()
 
@@ -175,9 +175,9 @@ func (s *Song) SetKeyOfArrangement(arrangement churchtools.SongArrangement) {
 	}
 	s.KeyOfArrangement = nT
 	if s.Filename == "" {
-		log.Fatal("Cannot save to non-set file")
+		log.Fatalf("Cannot save to non-set file")
 	}
-	log.Printf("Adding ID to %v", s.Filename)
+	log.Infof("Adding ID to %v", s.Filename)
 	line := fmt.Sprintf("#Key=%s\n", s.KeyOfArrangement)
 	err := util.InsertStringToFile(s.Filename, line, 1)
 	util.CheckForError(err)
@@ -216,7 +216,7 @@ func (s *Song) Save() error {
 
 	f, err := os.Create(s.Filename)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("%s", err)
 	}
 
 	_, err = fmt.Fprint(f, fileContent)
@@ -245,7 +245,7 @@ func (s *Song) UploadToArrangement(arrangement churchtools.SongArrangement, dupl
 	s.Save()
 	err := s.FixFilename()
 	if err != nil {
-		log.Printf("Cannot fix filename %s", err)
+		log.Warnf("Cannot fix filename %s", err)
 		s.MoveToDuplicates(duplicatesPath)
 		return nil
 	}
@@ -269,35 +269,35 @@ func (s *Song) GetModificationDate() (t time.Time, err error) {
 func (s *Song) Validate(apiSong churchtools.APISong, a churchtools.APISongArrangement) (err error) {
 	changed := false
 	if s.ChurchToolsID != apiSong.ID || s.ChurchToolsArrangementID != a.ID || s.ChurchToolsArrangement != a.Name {
-		log.Println("Setze ID Feld anhand von ChurchTools")
+		log.Debugf("Setze ID Feld anhand von ChurchTools")
 		s.SetID(apiSong.ID, a.ToArrangement())
 		changed = true
 	}
 	if s.CCLI != apiSong.CCLI {
-		log.Println("Setze CCLI Feld anhand von ChurchTools")
+		log.Debugf("Setze CCLI Feld anhand von ChurchTools")
 		s.CCLI = apiSong.CCLI
 		changed = true
 	}
 	if s.Author != apiSong.Author {
-		log.Println("Setze Autor Feld anhand von ChurchTools")
+		log.Debugf("Setze Autor Feld anhand von ChurchTools")
 		s.Author = apiSong.Author
 		changed = true
 	}
 
 	if s.Title != apiSong.Bezeichnung {
-		log.Println("Setze Titel Feld anhand von ChurchTools")
+		log.Debugf("Setze Titel Feld anhand von ChurchTools")
 		s.Title = apiSong.Bezeichnung
 		changed = true
 	}
 
 	if s.Copyright != apiSong.Copyright {
-		log.Println("Setze Copyright Feld anhand von ChurchTools")
+		log.Debugf("Setze Copyright Feld anhand von ChurchTools")
 		s.Copyright = apiSong.Copyright
 		changed = true
 	}
 
 	if changed {
-		log.Println("Datei geändert, speichere neuere Version")
+		log.Infof("Datei geändert, speichere neuere Version")
 		err = s.Save()
 		if err != nil {
 			return fmt.Errorf("Cannot save SNG file: %w", err)
@@ -309,7 +309,7 @@ func (s *Song) Validate(apiSong churchtools.APISong, a churchtools.APISongArrang
 func (s *Song) UploadIfNeeded(a *churchtools.APIFile, lastChanged time.Time) {
 	uploadNeeded := false
 	if a.Name != s.GetFilenameWithoutArrangement() {
-		log.Printf("Dateiname auf ChurchTools (%s) stimmt nicht, korrigiere zu %s", a.Name, s.GetFilenameWithoutArrangement())
+		log.Infof("Dateiname auf ChurchTools (%s) stimmt nicht, korrigiere zu %s", a.Name, s.GetFilenameWithoutArrangement())
 		a.SetUploadName(s.GetFilenameWithoutArrangement())
 		uploadNeeded = true
 	}
@@ -317,7 +317,7 @@ func (s *Song) UploadIfNeeded(a *churchtools.APIFile, lastChanged time.Time) {
 	ctDate := lastChanged.Round(time.Second)
 	sngDate, _ := s.GetModificationDate()
 	if sngDate.After(ctDate) {
-		log.Printf("CT is older: %v < %v", ctDate, sngDate)
+		log.Debugf("CT is older: %v < %v", ctDate, sngDate)
 		uploadNeeded = true
 	}
 

@@ -1,17 +1,19 @@
 package churchtools
 
 type apiAgendaResponse struct {
-	Agenda Agenda `json:"data"`
+	Agenda APIAgenda `json:"data"`
 }
 
-type Agenda struct {
-	ID      int          `json:"id"`
-	Name    string       `json:"name"`
-	IsFinal bool         `json:"isFinal"`
-	Items   []AgendaItem `json:"items"`
+// APIAgenda describes the agenda as returned by the REST API
+type APIAgenda struct {
+	ID      int             `json:"id"`
+	Name    string          `json:"name"`
+	IsFinal bool            `json:"isFinal"`
+	Items   []APIAgendaItem `json:"items"`
 }
 
-type AgendaItem struct {
+// APIAgendaItem describes an item in APIAgenda
+type APIAgendaItem struct {
 	ID            int    `json:"id"`
 	Position      int    `json:"position"`
 	Type          string `json:"type"`

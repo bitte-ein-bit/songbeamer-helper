@@ -115,7 +115,7 @@ func postRequest(client *http.Client, url string, params map[string]string) http
 	}
 	req, _ := http.NewRequest("POST", url, nil)
 	if params != nil {
-		// fmt.Println(params)
+		// log.Infof(params)
 		q := req.URL.Query()
 		for key, value := range params {
 			q.Add(key, value)
