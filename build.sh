@@ -11,8 +11,12 @@ for GOOS in darwin windows; do
     export GOOS
     echo "Building $VERSION for $GOOS"
     go build "${flags[@]}" -o "$TEMP/$GOOS-$GOARCH" main.go
+    file "$TEMP/$GOOS-$GOARCH"
 done
+
 ls -lah "$TEMP"
+md5sum "$TEMP"/*
+sleep 3
 unset GOARCH GOOS
 echo "Making self update"
 go-selfupdate "$TEMP" "$VERSION"
