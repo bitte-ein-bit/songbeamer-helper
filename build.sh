@@ -16,4 +16,5 @@ ls -lah "$TEMP"
 unset GOARCH GOOS
 echo "Making self update"
 go-selfupdate "$TEMP" "$VERSION"
+export AWS_PROFILE=privat
 aws s3 sync public/ s3://software.ec-pfuhl.de/songbeamer-helper/ --delete
