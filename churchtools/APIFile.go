@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/url"
 	"path/filepath"
 	"strconv"
+
+	"github.com/bitte-ein-bit/songbeamer-helper/log"
 )
 
 // APIFile describes a file as given by the new ChurchTools REST API
@@ -27,7 +28,7 @@ func (f *APIFile) getID() int {
 	}
 	params, err := url.ParseQuery(f.FileURL)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Cannot parse FileURL into segments: %s", err)
 		return 0
 	}
 	for key, value := range params {
@@ -91,13 +92,13 @@ func (f *APIFile) Save() error {
 		return fmt.Errorf("Save failed: %w", err)
 	}
 	var bodyContent []byte
-	// fmt.Println(resp.StatusCode)
-	// fmt.Println(resp.Header)
+	// log.Infof(resp.StatusCode)
+	// log.Infof(resp.Header)
 	resp.Body.Read(bodyContent)
 	resp.Body.Close()
-	// fmt.Println(bodyContent)
+	// log.Infof(bodyContent)
 	if currentID != 0 {
-		log.Println("File has been updated, deleting old version")
+		log.Debugf("File has been updated, deleting old version")
 		f.Delete(currentID)
 	}
 	return nil
@@ -123,7 +124,7 @@ func (f APIFile) Delete(ID int) error {
 	defer resp.Body.Close()
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("%s", err)
 	}
 	// log.Println(string(data))
 	r := songResponse{}

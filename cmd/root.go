@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 
+	"github.com/bitte-ein-bit/songbeamer-helper/log"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -31,8 +31,7 @@ func initConfig() {
 	} else {
 		home, err := homedir.Dir()
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			log.Fatalf("Cannot parse home dir: %s", err)
 		}
 
 		viper.SetConfigName(commandName) // name of config file (without extension)
@@ -42,7 +41,7 @@ func initConfig() {
 	}
 
 	if err := viper.ReadInConfig(); err != nil {
-		fmt.Println("Can't read config:", err)
+		log.Infof("Can't read config:", err)
 		os.Exit(1)
 	}
 }

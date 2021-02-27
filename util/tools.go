@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/bitte-ein-bit/songbeamer-helper/log"
 	"github.com/dimchansky/utfbom"
 	"github.com/igungor/chardet"
 	"golang.org/x/text/encoding/charmap"
@@ -18,14 +18,12 @@ import (
 
 func CheckForError(e error) {
 	if e != nil {
-		log.Fatal(e)
+		log.Fatalf("%s", e)
 	}
 }
 
-/**
- * Insert sting to n-th line of file.
- * If you want to insert a line, append newline '\n' to the end of the string.
- */
+// InsertStringToFile inserts string to n-th line of file.
+// If you want to insert a line, append newline '\n' to the end of the string.
 func InsertStringToFile(path, str string, index int) error {
 	lines, err := File2lines(path)
 	if err != nil {
@@ -42,9 +40,7 @@ func InsertStringToFile(path, str string, index int) error {
 	}
 
 	f, err := os.Create(path)
-	if err != nil {
-		log.Fatal(err)
-	}
+	CheckForError(err)
 
 	_, err = fmt.Fprint(f, fileContent)
 
@@ -93,7 +89,7 @@ func DetectEncoding(path string) *charmap.Charmap {
 	result, err := detector.DetectBest(dat)
 	CheckForError(err)
 
-	log.Printf("Detected charset for %s is %s", filepath.Base(path), result.Charset)
+	log.Debugf("Detected charset for %s is %s", filepath.Base(path), result.Charset)
 	switch result.Charset {
 	case "ISO-8859-1":
 		return charmap.Windows1252
