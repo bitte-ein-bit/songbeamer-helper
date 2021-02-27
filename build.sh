@@ -8,10 +8,11 @@ flags=(-ldflags="-X github.com/bitte-ein-bit/songbeamer-helper/cmd.version=$VERS
 
 export GOARCH=amd64
 for GOOS in darwin windows; do
+    export GOOS
     echo "Building $VERSION for $GOOS"
     go build "${flags[@]}" -o "$TEMP/$GOOS-$GOARCH" main.go
 done
-
+ls -lah "$TEMP"
 unset GOARCH GOOS
 echo "Making self update"
 go-selfupdate "$TEMP" "$VERSION"
