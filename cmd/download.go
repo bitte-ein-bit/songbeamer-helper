@@ -12,6 +12,7 @@ import (
 	"github.com/bitte-ein-bit/songbeamer-helper/log"
 	"github.com/bitte-ein-bit/songbeamer-helper/songbeamer"
 	"github.com/fatih/color"
+	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -63,7 +64,7 @@ func downloadSongsForCTEvent(event churchtools.Event) {
 func ask(events []churchtools.Event) (event churchtools.Event) {
 	for {
 		for key, value := range events {
-			fmt.Printf("%d. %s: %s - %s\n", key+1, value.StartDate.Format("02.01.2006 15:04"), value.Name, value.Description)
+			fmt.Printf("%d. %s: %s - %s\n", key+1, value.StartDate.Local().Format("02.01.2006 15:04"), value.Name, value.Description)
 		}
 
 		var input string
@@ -138,7 +139,43 @@ func DownloadSongbeamerFile(c churchtools.CTClient, s churchtools.APISong, path 
 }
 
 func createSongbeamerAgenda(event churchtools.Event) {
-	color.Set(color.FgRed)
-	log.Infof("Das Erstellen des Ablaufplans ist noch nicht implementiert.")
-	log.Infof("Bitte lade den Ablaufplan aus Churchtools herunter")
+	a := event.GetAgenda()
+	content := "object AblaufPlanItems: TAblaufPlanItems\n  items = <"
+	for _, item := range a.Items {
+		content += "\n" + item.ToSongbeamerItem()
+	}
+	content += ">\nend"
+
+	encoded := ""
+	for _, s := range content {
+		format := "%c"
+		if s > 200 {
+			format = "'#%d'"
+		}
+		encoded += fmt.Sprintf(format, s)
+	}
+
+	home, err := homedir.Dir()
+	if err != nil {
+		log.Fatalf("Cannot parse home dir: %s", err)
+	}
+	filename := fmt.Sprintf("%s/Desktop/Ablaufplan_%s.col", home, event.StartDate.Local().Format("2006-01-02_15-04"))
+	f, err := os.Create(filename)
+	defer f.Close()
+	if err != nil {
+		log.Fatalf("Ein Fehler ist beim Erstellen des Ablaufplans aufgetreten: %s", err)
+	}
+
+	_, err = fmt.Fprint(f, encoded)
+
+	if err != nil {
+		log.Fatalf("Ein Fehler ist beim Schreiben des Ablaufplans aufgetreten: %s", err)
+	}
+
+	color.Set(color.FgGreen)
+	fmt.Printf("Der Ablaufplan wurde nach %s gespeichert.\n", filename)
+
+	// color.Set(color.FgRed)
+	// log.Infof("Das Erstellen des Ablaufplans ist noch nicht implementiert.")
+	// log.Infof("Bitte lade den Ablaufplan aus Churchtools herunter")
 }

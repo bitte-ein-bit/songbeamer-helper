@@ -1,5 +1,10 @@
 package churchtools
 
+import (
+	"fmt"
+	"strings"
+)
+
 type apiAgendaResponse struct {
 	Agenda APIAgenda `json:"data"`
 }
@@ -12,13 +17,19 @@ type APIAgenda struct {
 	Items   []APIAgendaItem `json:"items"`
 }
 
-// APIAgendaItem describes an item in APIAgenda
-type APIAgendaItem struct {
-	ID            int    `json:"id"`
-	Position      int    `json:"position"`
-	Type          string `json:"type"`
+// APIAgendaSong describes a song as shown in an agenda item
+type APIAgendaSong struct {
+	SongID        int    `json:"songId"`
+	ArrangementID int    `json:"arrangementId"`
 	Title         string `json:"title"`
-	IsBeforeEvent bool   `json:"isBeforeEvent"`
-	SongID        int    `json:"songId,omitempty"`
-	ArrangementID int    `json:"arrangementId,omitempty"`
+	Arrangement   string `json:"arrangement"`
+	Category      string `json:"category"`
+	Key           string `json:"key"`
+	BPM           string `json:"bpm"`
+	IsDefault     bool   `json:"isDefault"`
+}
+
+func (s *APIAgendaSong) ToFilename() (filename string) {
+	filename = fmt.Sprintf("%s - %s.sng", strings.Replace(s.Title, "/", "_", -1), s.Arrangement)
+	return
 }
