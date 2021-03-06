@@ -144,6 +144,33 @@ func createSongbeamerAgenda(event churchtools.Event) {
 	for _, item := range a.Items {
 		content += "\n" + item.ToSongbeamerItem()
 	}
+	content += `
+	item
+      Color = 33023
+    end
+    item
+      Color = 33023
+    end
+    item
+      Color = 33023
+    end
+    item
+      Color = 33023
+    end
+    item
+      Caption = 'Immer mal n'#252'tzlich'
+      Color = 33023
+    end
+    item
+      Caption = 'Gebet - Vater unser'
+      Color = clBlue
+      FileName = 'Gebet - Vater unser.sng'
+    end
+    item
+      Caption = 'Das Apostolische Glaubensbekenntnis'
+      Color = clBlue
+      FileName = 'Das Apostolische Glaubensbekenntnis.sng'
+    end`
 	content += ">\nend"
 
 	encoded := ""
