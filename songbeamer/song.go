@@ -223,16 +223,11 @@ func (s *Song) Save() error {
 
 	f, err := os.Create(s.Filename)
 	if err != nil {
-		log.Fatalf("%s", err)
+		log.Fatalf("Cannot create file: %s", err)
 	}
+	defer f.Close()
 
 	_, err = fmt.Fprint(f, fileContent)
-
-	if err != nil {
-		return err
-	}
-
-	err = f.Close()
 	return err
 }
 
