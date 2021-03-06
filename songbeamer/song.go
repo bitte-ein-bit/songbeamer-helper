@@ -114,7 +114,7 @@ func (s *Song) FixFilename() error {
 	if s.ChurchToolsArrangement != "" {
 		id = fmt.Sprintf(" - %s", s.ChurchToolsArrangement)
 	}
-	filenameByTitle := fmt.Sprintf("%s%s.sng", strings.Replace(strings.Replace(s.Title, "/", "_", -1), "?", "_", -1), id)
+	filenameByTitle := fmt.Sprintf("%s%s.sng", s.saveFilename(s.Title), id)
 	if strings.ToLower(filepath.Base(s.Filename)) != strings.ToLower(filenameByTitle) {
 		log.Debugf("%s should be named %s", s.Filename, filenameByTitle)
 		newFilename := fmt.Sprintf("%s/%s", filepath.Dir(s.Filename), filenameByTitle)
@@ -130,7 +130,14 @@ func (s *Song) FixFilename() error {
 
 // GetFilenameWithoutArrangement constructs the filename without the arrangement addendum
 func (s *Song) GetFilenameWithoutArrangement() string {
-	return fmt.Sprintf("%s.sng", strings.Replace(s.Title, "/", "_", -1))
+	return fmt.Sprintf("%s.sng", s.saveFilename(s.Title))
+}
+
+func (s *Song) saveFilename(name string) (n string) {
+	n = strings.Replace(s.Title, "/", "_", -1)
+	n = strings.Replace(n, "?", "_", -1)
+	n = strings.Replace(n, ":", "_", -1)
+	return
 }
 
 // MoveToDuplicates moves the Songbeamer file out of the way
@@ -145,7 +152,7 @@ func (s *Song) MoveToDuplicates(path string) error {
 	if _, err := io.Copy(h, f); err != nil {
 		return fmt.Errorf("Can't compute MD5: %w", err)
 	}
-	newFilename := fmt.Sprintf("%s/%s-%s.sng", path, strings.Replace(s.Title, "/", "_", -1), fmt.Sprintf("%x", h.Sum(nil)))
+	newFilename := fmt.Sprintf("%s/%s-%s.sng", path, s.saveFilename(s.Title), fmt.Sprintf("%x", h.Sum(nil)))
 	err = os.Rename(s.Filename, newFilename)
 	util.CheckForError(err)
 	s.Filename = newFilename
