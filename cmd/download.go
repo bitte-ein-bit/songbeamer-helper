@@ -164,12 +164,12 @@ func createSongbeamerAgenda(event churchtools.Event) {
     item
       Caption = 'Gebet - Vater unser'
       Color = clBlue
-      FileName = 'Gebet - Vater unser.sng'
+      FileName = 'Gebet - Vater unser - Standard-Arrangement.sng'
     end
     item
       Caption = 'Das Apostolische Glaubensbekenntnis'
       Color = clBlue
-      FileName = 'Das Apostolische Glaubensbekenntnis.sng'
+      FileName = 'Das Apostolische Glaubensbekenntnis - Standard-Arrangement.sng'
     end`
 	content += ">\nend"
 
