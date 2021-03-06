@@ -18,6 +18,10 @@ func (i *APIAgendaItem) ToSongbeamerItem() (text string) {
 	var color string
 	var caption string
 	var extra string
+	if i.Title == "Count-Down / Jingle" {
+		i.Type = "intro"
+	}
+	caption = i.Title
 	switch i.Type {
 	case "song":
 		color = "clBlue"
@@ -25,10 +29,12 @@ func (i *APIAgendaItem) ToSongbeamerItem() (text string) {
 		extra += fmt.Sprintf("      FileName = '%s'\n", i.Song.ToFilename())
 	case "header":
 		color = "16711680"
-		caption = i.Title
 	case "normal":
-		color = "16711920"
-		caption = i.Title
+		color = "33023"
+	case "intro":
+		color = "clBlack"
+
+		extra += fmt.Sprint("      FileName = 'C:\\Program Files (x86)\\SongBeamer\\Intro.wav'\n")
 	}
 	text += fmt.Sprintf("      Caption = '%s'\n      Color = %s\n%s    end", caption, color, extra)
 	return

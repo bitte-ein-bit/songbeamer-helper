@@ -114,7 +114,7 @@ func (s *Song) FixFilename() error {
 	if s.ChurchToolsArrangement != "" {
 		id = fmt.Sprintf(" - %s", s.ChurchToolsArrangement)
 	}
-	filenameByTitle := fmt.Sprintf("%s%s.sng", strings.Replace(s.Title, "/", "_", -1), id)
+	filenameByTitle := fmt.Sprintf("%s%s.sng", strings.Replace(strings.Replace(s.Title, "/", "_", -1), "?", "_", -1), id)
 	if strings.ToLower(filepath.Base(s.Filename)) != strings.ToLower(filenameByTitle) {
 		log.Debugf("%s should be named %s", s.Filename, filenameByTitle)
 		newFilename := fmt.Sprintf("%s/%s", filepath.Dir(s.Filename), filenameByTitle)
