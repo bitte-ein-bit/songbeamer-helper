@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"mime/multipart"
 	"net/http"
 	"net/http/cookiejar"
@@ -14,6 +13,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/bitte-ein-bit/songbeamer-helper/log"
 	"golang.org/x/net/publicsuffix"
 )
 
@@ -35,7 +35,7 @@ func setupClient() {
 	}
 	jar, err := cookiejar.New(&options)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("%s", err)
 	}
 	client = &http.Client{Jar: jar}
 }
@@ -52,14 +52,14 @@ func login() {
 		"directtool": {"songsync"},
 	})
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("%s", err)
 	}
 	defer resp.Body.Close()
 	_, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("%s", err)
 	}
-	log.Println("Login successful")
+	log.Infof("Login successful")
 }
 
 func getCSRFToken() string {
@@ -75,7 +75,7 @@ func getCSRFToken() string {
 	resp, _ := client.Do(req)
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("%s", err)
 	}
 	csrftoken1 := csrftoken{}
 	jsonErr := json.Unmarshal(data, &csrftoken1)
@@ -89,7 +89,7 @@ func getCSRFToken() string {
 
 func getRequest(url string, params map[string]string) http.Response {
 	if client == nil {
-		log.Fatal("please login first")
+		log.Fatalf("please login first")
 	}
 	req, _ := http.NewRequest("GET", url, nil)
 	if params != nil {
@@ -103,14 +103,14 @@ func getRequest(url string, params map[string]string) http.Response {
 	req.Header.Set("CSRF-Token", getCSRFToken())
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("%s", err)
 	}
 	return *resp
 }
 
 func postRequest(client *http.Client, url string, params map[string]string) http.Response {
 	if client == nil {
-		log.Fatal("please login first")
+		log.Fatalf("please login first")
 	}
 	req, _ := http.NewRequest("POST", url, nil)
 	if params != nil {
@@ -126,7 +126,7 @@ func postRequest(client *http.Client, url string, params map[string]string) http
 	// log.Println(req.Header)
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("%s", err)
 	}
 	// log.Println(resp.Header)
 	return *resp
