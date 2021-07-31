@@ -276,34 +276,34 @@ func (s *Song) Validate(apiSong churchtools.APISong, a churchtools.APISongArrang
 		changed = true
 	}
 	if s.CCLI != apiSong.CCLI {
-		log.Debugf("Setze CCLI Feld anhand von ChurchTools")
+		log.Infof("Setze CCLI Feld anhand von ChurchTools")
 		s.CCLI = apiSong.CCLI
 		changed = true
 	}
 	if s.Author != apiSong.Author {
-		log.Debugf("Setze Autor Feld anhand von ChurchTools")
+		log.Infof("Setze Autor Feld anhand von ChurchTools")
 		s.Author = apiSong.Author
 		changed = true
 	}
 
 	if s.Title != apiSong.Bezeichnung {
-		log.Debugf("Setze Titel Feld anhand von ChurchTools")
+		log.Infof("Setze Titel Feld anhand von ChurchTools")
 		s.Title = apiSong.Bezeichnung
 		changed = true
 	}
 
 	if s.Copyright != apiSong.Copyright {
-		log.Debugf("Setze Copyright Feld anhand von ChurchTools")
+		log.Infof("Setze Copyright Feld anhand von ChurchTools")
 		s.Copyright = apiSong.Copyright
 		changed = true
 	}
 
 	if changed {
-		log.Infof("Datei geändert, speichere neuere Version")
 		err = s.Save()
 		if err != nil {
 			return fmt.Errorf("Cannot save SNG file: %w", err)
 		}
+		log.Infof("Datei aktualisiert")
 	}
 	return
 }
@@ -319,7 +319,7 @@ func (s *Song) UploadIfNeeded(a *churchtools.APIFile, lastChanged time.Time) {
 	ctDate := lastChanged.Round(time.Second)
 	sngDate, _ := s.GetModificationDate()
 	if sngDate.After(ctDate) {
-		log.Debugf("CT is older: %v < %v", ctDate, sngDate)
+		log.Debugf("ChurchTools ist älter: %v < %v, lade Datei zu ChurchTools hoch", ctDate, sngDate)
 		uploadNeeded = true
 	}
 

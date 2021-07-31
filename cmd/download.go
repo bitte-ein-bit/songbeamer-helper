@@ -54,7 +54,7 @@ func downloadSongsForCTEvent(event churchtools.Event) {
 
 	path := viper.GetString("songspath")
 	for _, song := range songs {
-		_, err := DownloadSongbeamerFile(c, song, path)
+		_, err := DownloadSongbeamerFiles(c, song, path)
 		if err != nil {
 			log.Errorf("Cannot download song: %v", err)
 		}
@@ -98,41 +98,79 @@ func ask(events []churchtools.Event) (event churchtools.Event) {
 }
 
 // DownloadSongbeamerFile downloads a file from Churchtools so it can be used with Songbeamer
-func DownloadSongbeamerFile(c churchtools.CTClient, s churchtools.APISong, path string) (files []string, err error) {
+func DownloadSongbeamerFile(c churchtools.CTClient, s churchtools.APISong, a churchtools.APISongArrangement, f churchtools.APIFile, filename string, UploadIfNeeded bool) (err error) {
+	resp := c.GetRequest(f.FileURL, nil)
+	defer resp.Body.Close()
+
+	last := resp.Header.Get("Last-Modified")
+	lastTime, err := time.Parse(time.RFC1123, last)
+	if err != nil {
+		log.Warnf("Kann letztes Änderungsdatum auf ChurchTools nicht auswerten, verwende stattdessen jetzt als letztes Änderungsdatum")
+		lastTime = time.Now()
+	}
+
+	out, err := os.Create(filename)
+	if err != nil {
+		return fmt.Errorf("Kann Datei nicht erzeugen: %w", err)
+	}
+	defer out.Close()
+	io.Copy(out, resp.Body)
+	err = os.Chtimes(filename, lastTime, lastTime)
+	if err != nil {
+		log.Warnf("Cannot adjust time on file. Ignoring error: %s", err)
+	}
+	sng := songbeamer.Song{}
+	sng.LoadFromFile(filename)
+	sng.Validate(s, a)
+	if UploadIfNeeded {
+		sng.UploadIfNeeded(&f, lastTime)
+	}
+	log.Infof("Datei %s erfolgreich aus ChurchTools heruntergeladen", filename)
+	return
+}
+
+// DownloadSongbeamerFiles downloads a SNG file from Churchtools Song
+func DownloadSongbeamerFiles(c churchtools.CTClient, s churchtools.APISong, path string) (files []string, err error) {
+	duplicates := viper.GetString("duplicates")
 	if path == "" {
-		return nil, fmt.Errorf("Cannot save to an empty path: %s", path)
+		return nil, fmt.Errorf("Kann nicht in einen leeren Pfad speichern!")
 	}
 	for _, a := range s.Arrangements {
+		log.Debugf("Bearbeite Arrangement %s von %s", a.Name, s.Bezeichnung)
+		loaded := false
 		for _, f := range a.Files {
 			if filepath.Ext(f.Name) != ".sng" {
 				continue
 			}
-			resp := c.GetRequest(f.FileURL, nil)
-			defer resp.Body.Close()
-
-			last := resp.Header.Get("Last-Modified")
-			lastTime, err := time.Parse(time.RFC1123, last)
-			if err != nil {
-				log.Warnf("Kann letztes Änderungsdatum nicht auswerten, verwende jetzt")
-				lastTime = time.Now()
-			}
-
 			filename := fmt.Sprintf("%s/%s - %s.sng", path, s.Bezeichnung, a.Name)
-			out, err := os.Create(filename)
+			err = DownloadSongbeamerFile(c, s, a, f, filename, true)
 			if err != nil {
-				return nil, fmt.Errorf("Cannot create file: %w", err)
+				log.Errorf("Fehler beim Download: %w", err)
 			}
-			defer out.Close()
-			io.Copy(out, resp.Body)
-			err = os.Chtimes(filename, lastTime, lastTime)
-			if err != nil {
-				log.Warnf("Cannot adjust time on file. Ignoring error: %s", err)
-			}
-			sng := songbeamer.Song{}
-			sng.LoadFromFile(filename)
-			sng.Validate(s, a)
-			sng.UploadIfNeeded(&f, lastTime)
+			loaded = true
 			files = append(files, filename)
+		}
+		if (!loaded) {
+			log.Warnf("Arrangement %s enthält keine Songbeamer Datei, versuche Datei von Standard-Ararangement zu kopieren", a.Name)
+			for _, f := range s.GetDefaultArrangement().Files {
+				if filepath.Ext(f.Name) != ".sng" {
+					continue
+				}
+				filename := fmt.Sprintf("%s/%s - %s.sng", path, s.Bezeichnung, a.Name)
+				err = DownloadSongbeamerFile(c, s, a, f, filename, false)
+				if err != nil {
+					log.Errorf("Fehler beim Download: %w", err)
+				}
+				sng := songbeamer.Song{}
+				sng.LoadFromFile(filename)
+				sng.UploadToArrangement(a.ToArrangement(), duplicates)
+				loaded = true
+				files = append(files, filename)
+			}
+			if (!loaded) {
+				log.Errorf("Download aus Standardarrangement nicht erfolgreich!")
+				log.Infof("")
+			}
 		}
 	}
 	return
