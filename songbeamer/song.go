@@ -30,15 +30,61 @@ type Song struct {
 	BPM                      string
 	Beat                     string
 	VerseOrder               string
+	VerseIdentifier          []string
 	Filename                 string
 	Category                 []string
 	Verses                   [][]string
 	Headers                  map[string]string
 }
 
+func isIdentifier(s string) (status bool, identifier string) {
+	identifier = strings.Split(s, " ")[0]
+	status = false
+	switch strings.ToLower(identifier) {
+	case
+		"unbekannt",
+		"unbenannt",
+		"unknown",
+		"intro",
+		"vers",
+		"verse",
+		"strophe",
+		"pre-bridge",
+		"bridge",
+		"misc",
+		"pre-refrain",
+		"refrain",
+		"pre-chorus",
+		"chorus",
+		"pre-coda",
+		"zwischenspiel",
+		"instrumental",
+		"interlude",
+		"coda",
+		"ending",
+		"outro",
+		"teil",
+		"part",
+		"chor",
+		"solo",
+		"stop":
+		status = true
+		return
+	}
+	if strings.HasPrefix(identifier, "$$M=") {
+		status = true
+		// identifier = strings.SplitN(identifier, "=", 2)[1]
+	}
+	identifier = ""
+
+	return
+
+}
+
 // LoadFromFile loads a sng file into a Song struct
 func (s *Song) LoadFromFile(filename string) {
 	inHeader := true
+	firstLineOfVerse := false
 	var verse []string
 	s.Filename = filename
 	lines, err := util.File2lines(filename)
@@ -51,10 +97,12 @@ func (s *Song) LoadFromFile(filename string) {
 				s.Verses = append(s.Verses, verse)
 				verse = []string{}
 			}
+			firstLineOfVerse = true
 			continue
 		}
 		if inHeader {
-			header := strings.Split(line, "=")
+			header := strings.SplitN(line,
+				"=", 2)
 			switch strings.Trim(header[0], "#") {
 			case "(c)":
 				s.Copyright = header[1]
@@ -87,6 +135,10 @@ func (s *Song) LoadFromFile(filename string) {
 			case "Categories":
 				s.Category = strings.Split(header[1], ",")
 			default:
+				if len(header) < 2 {
+					log.Debugf("Header hat ungültige Zeile: %s", line)
+					continue
+				}
 				if s.Headers == nil {
 					s.Headers = make(map[string]string)
 				}
@@ -97,6 +149,13 @@ func (s *Song) LoadFromFile(filename string) {
 				}
 			}
 			continue
+		}
+		if firstLineOfVerse {
+			firstLineOfVerse = false
+			status, _ := isIdentifier(line)
+			if status {
+				s.VerseIdentifier = append(s.VerseIdentifier, line)
+			}
 		}
 		verse = append(verse, line)
 		// if line == "--" {
@@ -152,6 +211,7 @@ func (s *Song) MoveToDuplicates(path string) error {
 	if _, err := io.Copy(h, f); err != nil {
 		return fmt.Errorf("Can't compute MD5: %w", err)
 	}
+	f.Close()
 	newFilename := fmt.Sprintf("%s/%s-%s.sng", path, s.saveFilename(s.Title), fmt.Sprintf("%x", h.Sum(nil)))
 	err = os.Rename(s.Filename, newFilename)
 	util.CheckForError(err)

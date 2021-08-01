@@ -18,7 +18,7 @@ func init() {
 }
 
 var cmdCTUpload = &cobra.Command{
-	Use:   "ct-push",
+	Use:   "ct-upload",
 	Short: "Push songs to ChurchTools",
 	Long:  `Sync changes to ChurchTools`,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -72,7 +72,7 @@ func processSongbeamerSongs(songs map[string]churchtools.Song) map[string]church
 	path := viper.GetString("songspath")
 	duplicates := viper.GetString("duplicates")
 
-	log.Infof("Reading songs from %v", path)
+	log.Infof("Lese Songbeamer Songs in %v", path)
 	files, err := ioutil.ReadDir(path)
 	util.CheckForError(err)
 
@@ -95,7 +95,7 @@ func processSongbeamerSongs(songs map[string]churchtools.Song) map[string]church
 			// Song has an ID, so it should exists in ChurchTools
 			ctSong := filterSongs(songs, "ID", song.ChurchToolsID)
 			if ctSong.ID == 0 {
-				log.Debugf("CT Song ID (%d) can't be found, resetting ID and skip", song.ChurchToolsID)
+				log.Infof("Die Song ID (%d) konnte auf ChurchTools nicht gefunden werden. Lösche ID und überspringe", song.ChurchToolsID)
 				song.ID = ""
 				song.Save()
 				err = song.FixFilename()
@@ -110,7 +110,7 @@ func processSongbeamerSongs(songs map[string]churchtools.Song) map[string]church
 			if a == "" {
 				a = "Standard-Arrangement"
 			}
-			log.Infof("Song has CT ID of %d, arrangement by Filename is %s, arrangement by ID is %s", song.ChurchToolsID, a, song.ChurchToolsArrangement)
+			log.Infof("Lied hat ChurchTools ID %d, Arrangement anhand Dateiname ist %s, Arrangement anhand ID ist %s", song.ChurchToolsID, a, song.ChurchToolsArrangement)
 
 			var arrangement churchtools.SongArrangement
 			for _, arrange := range ctSong.Arrangements {
@@ -120,7 +120,7 @@ func processSongbeamerSongs(songs map[string]churchtools.Song) map[string]church
 				}
 			}
 			if arrangement.ID == 0 {
-				log.Infof("Seems song was renamed to new arrangement: %s", a)
+				log.Infof("Scheinbar wurde die Datei zu einem neuen Arrangement %s umbenannt", a)
 				arrangementID, err := ctSong.AddArrangement(a)
 				util.CheckForError(err)
 				arrangement = churchtools.SongArrangement{
@@ -158,17 +158,17 @@ func processSongbeamerSongs(songs map[string]churchtools.Song) map[string]church
 				ctDate, _ := file.GetModificationDate()
 				sngDate, _ := song.GetModificationDate()
 				if sngDate.After(ctDate) {
-					log.Infof("CT is older: %v < %v", ctDate, sngDate)
+					log.Infof("ChurchTools ist älter: %v < %v", ctDate, sngDate)
 					APIFileToUpdate = file.ToAPIFile()
 					continue
 				}
-				log.Infof("CT is newer: %v >= %v", ctDate, sngDate)
+				log.Infof("ChurchTools ist neuer: %v >= %v", ctDate, sngDate)
 				newer = false
 			}
 			if !newer {
 				continue
 			}
-			log.Debugf("File needs to be updated on CT")
+			log.Debugf("Datei muss auf ChurchTools aktualisiert werden")
 			APIFileToUpdate.SetUploadName(song.GetFilenameWithoutArrangement())
 			APIFileToUpdate.LoadFromFile(song.Filename)
 			err = APIFileToUpdate.Save()
