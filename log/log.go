@@ -99,7 +99,6 @@ func Warnf(format string, args ...interface{}) {
 		msg = fmt.Sprintf(msg, args...)
 	}
 
-
 	color.Set(color.FgHiYellow)
 	log.Println(msg)
 	color.Unset()
