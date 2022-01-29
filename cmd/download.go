@@ -150,7 +150,7 @@ func DownloadSongbeamerFiles(c churchtools.CTClient, s churchtools.APISong, path
 			loaded = true
 			files = append(files, filename)
 		}
-		if (!loaded) {
+		if !loaded {
 			log.Warnf("Arrangement %s enthält keine Songbeamer Datei, versuche Datei von Standard-Ararangement zu kopieren", a.Name)
 			for _, f := range s.GetDefaultArrangement().Files {
 				if filepath.Ext(f.Name) != ".sng" {
@@ -167,7 +167,7 @@ func DownloadSongbeamerFiles(c churchtools.CTClient, s churchtools.APISong, path
 				loaded = true
 				files = append(files, filename)
 			}
-			if (!loaded) {
+			if !loaded {
 				log.Errorf("Download aus Standardarrangement nicht erfolgreich!")
 				log.Infof("")
 			}
