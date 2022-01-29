@@ -1,6 +1,9 @@
 package churchtools
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // APIAgendaItem describes an item in APIAgenda
 type APIAgendaItem struct {
@@ -26,7 +29,7 @@ func (i *APIAgendaItem) ToSongbeamerItem() (text string) {
 	case "song":
 		color = "clBlue"
 		caption = fmt.Sprintf("%s - %s", i.Song.Title, i.Song.Arrangement)
-		extra += fmt.Sprintf("      FileName = '%s'\n", i.Song.ToFilename())
+		extra += fmt.Sprintf("      FileName = '%s'\n", strings.Replace(i.Song.ToFilename(), "'", "'#39'", -1))
 	case "header":
 		color = "clBlack"
 	case "normal":
@@ -35,6 +38,6 @@ func (i *APIAgendaItem) ToSongbeamerItem() (text string) {
 		color = "clBlack"
 		extra += fmt.Sprint("      FileName = 'C:\\Program Files (x86)\\SongBeamer\\Intro.wav'\n")
 	}
-	text += fmt.Sprintf("      Caption = '%s'\n      Color = %s\n%s    end", caption, color, extra)
+	text += fmt.Sprintf("      Caption = '%s'\n      Color = %s\n%s    end", strings.Replace(caption, "'", "'#39'", -1), color, extra)
 	return
 }
