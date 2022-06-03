@@ -2,7 +2,8 @@ package churchtools
 
 import (
 	"fmt"
-	"log"
+
+	"github.com/bitte-ein-bit/songbeamer-helper/log"
 )
 
 // The APISong is describing the api response of a Song. It is further defined by one or more Arrangements
@@ -26,7 +27,7 @@ func (s *APISong) GetDefaultArrangement() (ret APISongArrangement) {
 			return value
 		}
 	}
-	log.Print("No default arrangement found")
+	log.Println("No default arrangement found")
 	return
 }
 

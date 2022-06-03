@@ -64,11 +64,11 @@ func downloadSongsForCTEvent(event churchtools.Event) {
 func ask(events []churchtools.Event) (event churchtools.Event) {
 	for {
 		for key, value := range events {
-			fmt.Printf("%d. %s: %s - %s\n", key+1, value.StartDate.Local().Format("02.01.2006 15:04"), value.Name, value.Description)
+			log.Printf("%d. %s: %s - %s\n", key+1, value.StartDate.Local().Format("02.01.2006 15:04"), value.Name, value.Description)
 		}
 
 		var input string
-		fmt.Print("Bitte wähle eine Veranstaltung aus, für die du die Songs herunterladen möchtest: ")
+		log.Print("Bitte wähle eine Veranstaltung aus, für die du die Songs herunterladen möchtest: ")
 
 		_, err := fmt.Scanln(&input)
 		if err != nil {
@@ -88,7 +88,7 @@ func ask(events []churchtools.Event) (event churchtools.Event) {
 			log.Errorf("Ungültiger Wert %d. Gültige Werte sind: 1-%d\n", selected, len(events))
 			continue
 		}
-
+		log.Debugf("Wähle Veranstaltung %d", selected)
 		// Translate user-selected index back to zero-based index.
 		event = events[selected-1]
 		break
@@ -232,6 +232,7 @@ func createSongbeamerAgenda(event churchtools.Event) {
 	}
 
 	_, err = fmt.Fprint(f, encoded)
+	log.Debugf("ABLAUFPLAN: %v", encoded)
 
 	if err != nil {
 		log.Fatalf("Ein Fehler ist beim Schreiben des Ablaufplans aufgetreten: %s", err)

@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"math"
+
+	"github.com/bitte-ein-bit/songbeamer-helper/log"
 )
 
 // GetSongs returns the Songs as sent by churchservice/getAllSongs endpoint

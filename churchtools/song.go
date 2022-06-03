@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"time"
+
+	"github.com/bitte-ein-bit/songbeamer-helper/log"
 )
 
 // The Song is describing the api response of a Song. It is further defined by one or more Arrangements

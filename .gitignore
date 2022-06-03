@@ -9,3 +9,4 @@ songduplicates/
 songs-org/
 songs-edited
 *.col
+.googlecloud.json

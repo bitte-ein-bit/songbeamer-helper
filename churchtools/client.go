@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"mime/multipart"
 	"net/http"
 	"net/http/cookiejar"
@@ -14,6 +13,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/bitte-ein-bit/songbeamer-helper/log"
 	"golang.org/x/net/publicsuffix"
 )
 
