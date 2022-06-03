@@ -1,8 +1,7 @@
 package cmd
 
 import (
-	"log"
-
+	"github.com/bitte-ein-bit/songbeamer-helper/log"
 	"github.com/spf13/cobra"
 )
 

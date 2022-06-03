@@ -32,6 +32,7 @@ const (
 )
 
 func uploadToChurchTools() {
+	log.SetLevel(log.Debug)
 	log.Infof("syncing to ChurchTools")
 	songs, err := churchtools.GetSongs()
 	util.CheckForError(err)
