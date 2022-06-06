@@ -19,9 +19,9 @@ var cmdUpdate = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
-		log.Printf("Aktuelle Version: %s, Letzte Verfügbare Version: %s\n", updater.CurrentVersion, version)
+		log.Printf("Aktuelle Version: %s, Letzte Verfügbare Version: %s\r\n", updater.CurrentVersion, version)
 		updater.BackgroundRun()
-		log.Printf("Update von %s heruntergeladen: %s\n", updateURL, updater.Info.Version)
+		log.Printf("Update von %s heruntergeladen: %s\r\n", updateURL, updater.Info.Version)
 		log.Finalize()
 	},
 }
