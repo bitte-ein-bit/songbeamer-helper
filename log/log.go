@@ -69,6 +69,7 @@ var (
 )
 
 func init() {
+	var err error
 	ctx := context.Background()
 
 	// decode the base64 encoded credentials
@@ -103,8 +104,6 @@ func init() {
 	errorLogger = client.Logger(logName).StandardLogger(logging.Error)
 	fatalLogger = client.Logger(logName).StandardLogger(logging.Emergency)
 
-	// debugLogger.SetFlags(log.LstdFlags | log.Lshortfile)
-	// fatalLogger.SetFlags(log.LstdFlags | log.Lshortfile)
 	// log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	infoLogger.Println("logging initialized")
@@ -167,7 +166,7 @@ func Debugf(format string, args ...any) {
 	lock.Lock()
 	defer lock.Unlock()
 	_, filename, line, _ := runtime.Caller(1)
-	msg := fmt.Sprintf("DEBUG: [%s][%d] %s", filename, line, format)
+	msg := fmt.Sprintf("[%s][%d] %s", filename, line, format)
 	debugLogger.Printf(msg, args...)
 	if level < Debug {
 		return
@@ -225,13 +224,27 @@ func Fatalf(format string, args ...any) {
 	lock.Lock()
 	defer lock.Unlock()
 	fatalLogger.Printf(format, args...)
-	msg := fmt.Sprintf("FATAL: %s", format)
+	msg := fmt.Sprintf("FATAL: %v", format)
 	if len(args) > 0 {
 		msg = fmt.Sprintf(msg, args...)
 	}
+	Finalize()
 	log.Fatal(msg)
 }
 
 func Fatal(v ...any) {
-	Fatalf("%s", v)
+	lock.Lock()
+	defer lock.Unlock()
+	msg := fmt.Sprint(v...)
+	fatalLogger.Print(msg)
+	Finalize()
+	log.Fatal(msg)
+}
+
+// Finalize makes sure all logs are sent to GCP
+func Finalize() {
+	err := client.Close()
+	if err != nil {
+		log.Fatalf("Fehler beim Hochladen der Logs: %v", err)
+	}
 }

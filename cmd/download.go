@@ -29,6 +29,7 @@ var cmdCTDownload = &cobra.Command{
 		event := selectCTEvent()
 		downloadSongsForCTEvent(event)
 		createSongbeamerAgenda(event)
+		log.Finalize()
 	},
 }
 

@@ -94,8 +94,8 @@ func (f *APIFile) Save() error {
 	var bodyContent []byte
 	// log.Infof(resp.StatusCode)
 	// log.Infof(resp.Header)
+	defer resp.Body.Close()
 	resp.Body.Read(bodyContent)
-	resp.Body.Close()
 	// log.Infof(bodyContent)
 	if currentID != 0 {
 		log.Debugf("File has been updated, deleting old version")
