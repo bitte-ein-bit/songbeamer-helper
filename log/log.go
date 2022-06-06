@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"runtime"
 	"sync"
 
 	"cloud.google.com/go/logging"
@@ -102,6 +103,10 @@ func init() {
 	errorLogger = client.Logger(logName).StandardLogger(logging.Error)
 	fatalLogger = client.Logger(logName).StandardLogger(logging.Emergency)
 
+	// debugLogger.SetFlags(log.LstdFlags | log.Lshortfile)
+	// fatalLogger.SetFlags(log.LstdFlags | log.Lshortfile)
+	// log.SetFlags(log.LstdFlags | log.Lshortfile)
+
 	infoLogger.Println("logging initialized")
 	debugLogger.Println("debug test")
 }
@@ -114,7 +119,7 @@ func SetLevel(l int) {
 	level = l
 }
 
-func Printf(format string, args ...interface{}) {
+func Printf(format string, args ...any) {
 	lock.Lock()
 	defer lock.Unlock()
 
@@ -127,11 +132,11 @@ func Printf(format string, args ...interface{}) {
 	fmt.Print(msg)
 }
 
-func Println(args ...interface{}) {
+func Println(args ...any) {
 	Print(args, "\n")
 }
 
-func Print(args ...interface{}) {
+func Print(args ...any) {
 	lock.Lock()
 	defer lock.Unlock()
 
@@ -141,7 +146,7 @@ func Print(args ...interface{}) {
 }
 
 // Infof logs an info message.
-func Infof(format string, args ...interface{}) {
+func Infof(format string, args ...any) {
 	lock.Lock()
 	defer lock.Unlock()
 	infoLogger.Printf(format, args...)
@@ -158,15 +163,17 @@ func Infof(format string, args ...interface{}) {
 }
 
 // Debugf logs a debug message.
-func Debugf(format string, args ...interface{}) {
+func Debugf(format string, args ...any) {
 	lock.Lock()
 	defer lock.Unlock()
-	debugLogger.Printf(format, args...)
+	_, filename, line, _ := runtime.Caller(1)
+	msg := fmt.Sprintf("DEBUG: [%s][%d] %s", filename, line, format)
+	debugLogger.Printf(msg, args...)
 	if level < Debug {
 		return
 	}
 
-	msg := fmt.Sprintf("DEBUG: %s", format)
+	msg = fmt.Sprintf("DEBUG: %s", format)
 	if len(args) > 0 {
 		msg = fmt.Sprintf(msg, args...)
 	}
@@ -176,7 +183,7 @@ func Debugf(format string, args ...interface{}) {
 }
 
 // Warnf logs an error message.
-func Warnf(format string, args ...interface{}) {
+func Warnf(format string, args ...any) {
 	lock.Lock()
 	defer lock.Unlock()
 	warningLogger.Printf(format, args...)
@@ -195,7 +202,7 @@ func Warnf(format string, args ...interface{}) {
 }
 
 // Errorf logs an error message.
-func Errorf(format string, args ...interface{}) {
+func Errorf(format string, args ...any) {
 	lock.Lock()
 	defer lock.Unlock()
 	errorLogger.Printf(format, args...)
@@ -214,7 +221,7 @@ func Errorf(format string, args ...interface{}) {
 }
 
 // Fatalf logs an error message.
-func Fatalf(format string, args ...interface{}) {
+func Fatalf(format string, args ...any) {
 	lock.Lock()
 	defer lock.Unlock()
 	fatalLogger.Printf(format, args...)
@@ -222,11 +229,9 @@ func Fatalf(format string, args ...interface{}) {
 	if len(args) > 0 {
 		msg = fmt.Sprintf(msg, args...)
 	}
-	// Close the client when finished.
-	client.Close()
 	log.Fatal(msg)
 }
 
-func Fatal(v ...interface{}) {
+func Fatal(v ...any) {
 	Fatalf("%s", v)
 }

@@ -13,7 +13,7 @@ type SongFile struct {
 	Bezeichnung            string `json:"bezeichnung"`
 	Filename               string `json:"filename"`
 	ShowonlywheneditableYN int    `json:"showonlywheneditable_yn,string"`
-	SecuritylevelID        int    `json:"securitylevel_id,omitempty"`
+	SecuritylevelID        string `json:"securitylevel_id,omitempty"`
 	ImageOptions           string `json:"image_options"`
 	ModifiedDate           string `json:"modified_date"`
 	ModifiedPID            int    `json:"modified_pid,string"`
