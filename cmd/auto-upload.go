@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"github.com/bitte-ein-bit/songbeamer-helper/log"
 	"github.com/spf13/cobra"
+	"github.com/bitte-ein-bit/songbeamer-helper/log"
 )
 
 func init() {
@@ -14,6 +14,7 @@ var autoUpload = &cobra.Command{
 	Short: "Push songs to ChurchTools",
 	Long:  `Sync changes to ChurchTools`,
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Infof("Auto Upload Funktion ist noch deaktivert. Verwende bei Bedarf ct-upload.")
+		uploadToChurchTools(true)
+		log.Finalize()
 	},
 }

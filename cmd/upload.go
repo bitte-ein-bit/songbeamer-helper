@@ -22,7 +22,8 @@ var cmdCTUpload = &cobra.Command{
 	Short: "Push songs to ChurchTools",
 	Long:  `Sync changes to ChurchTools`,
 	Run: func(cmd *cobra.Command, args []string) {
-		uploadToChurchTools()
+		uploadToChurchTools(false)
+		log.Finalize()
 	},
 }
 
@@ -31,19 +32,16 @@ const (
 	cCLISongCat   = "1" // inactive Songs
 )
 
-func uploadToChurchTools() {
-	log.SetLevel(log.Debug)
-	log.Infof("syncing to ChurchTools")
+func uploadToChurchTools(isAutoUpload bool) {
+	if !isAutoUpload {
+		log.SetLevel(log.Debug)
+	}
+	log.Infof("Synchronisiere nach ChurchTools")
 	songs, err := churchtools.GetSongs()
 	util.CheckForError(err)
 
-	// for _, song := range songs {
-	// 	song.Delete()
-	// }
-	// songs = nil
-
-	_ = processSongbeamerSongs(songs)
-	log.Infof("done")
+	_ = processSongbeamerSongs(songs, isAutoUpload)
+	log.Infof("fertig")
 }
 
 func filterSongs(songs map[string]churchtools.Song, filterField string, search interface{}) (ret churchtools.Song) {
@@ -69,7 +67,7 @@ func filterSongs(songs map[string]churchtools.Song, filterField string, search i
 	return churchtools.Song{}
 }
 
-func processSongbeamerSongs(songs map[string]churchtools.Song) map[string]churchtools.Song {
+func processSongbeamerSongs(songs map[string]churchtools.Song, isAutoUpload bool) map[string]churchtools.Song {
 	path := viper.GetString("songspath")
 	duplicates := viper.GetString("duplicates")
 
@@ -91,8 +89,12 @@ func processSongbeamerSongs(songs map[string]churchtools.Song) map[string]church
 		fullpath := filepath.Join(path, file.Name())
 		song := songbeamer.Song{}
 		song.LoadFromFile(fullpath)
-		log.Infof("Working on %s", song.Title)
+		log.Infof("Bearbeite \"%s\"", file.Name())
 		if song.ID != "" {
+			if isAutoUpload {
+				log.Debugf("Überspringe %s da Auto-Update", song.Title)
+				continue
+			}
 			// Song has an ID, so it should exists in ChurchTools
 			ctSong := filterSongs(songs, "ID", song.ChurchToolsID)
 			if ctSong.ID == 0 {
@@ -101,7 +103,7 @@ func processSongbeamerSongs(songs map[string]churchtools.Song) map[string]church
 				song.Save()
 				err = song.FixFilename()
 				if err != nil {
-					log.Warnf("Cannot fix filename %s", err)
+					log.Warnf("Kann Dateinamen nicht korrigieren: %s", err)
 					song.MoveToDuplicates(duplicates)
 				}
 				continue
@@ -135,7 +137,7 @@ func processSongbeamerSongs(songs map[string]churchtools.Song) map[string]church
 				song.SetID(ctSong.ID, arrangement)
 				err = song.FixFilename()
 				if err != nil {
-					log.Infof("Cannot fix filename %s", err)
+					log.Infof("Kann Dateinamen nicht korrigieren: %s", err)
 					song.MoveToDuplicates(duplicates)
 				}
 				continue
@@ -144,7 +146,7 @@ func processSongbeamerSongs(songs map[string]churchtools.Song) map[string]church
 
 			err = song.FixFilename()
 			if err != nil {
-				log.Infof("Cannot fix filename %s", err)
+				log.Infof("Kann Dateinamen nicht korrigieren: %s", err)
 				song.MoveToDuplicates(duplicates)
 				continue
 			}
@@ -190,10 +192,13 @@ func processSongbeamerSongs(songs map[string]churchtools.Song) map[string]church
 				// TODO arrangement erkennen
 				err := song.FixFilename()
 				if err != nil {
-					log.Infof("Cannot fix filename %s", err)
+					log.Infof("Datei ist Duplikat: %s", err)
 					song.MoveToDuplicates(duplicates)
 				}
-
+				continue
+			}
+			if isAutoUpload {
+				log.Debugf("Überspringe %s da Auto-Update", song.Title)
 				continue
 			}
 			id := churchtools.AddSong(song.Title, song.Author, song.Copyright, song.CCLI, song.KeyOfArrangement, "", "", cCLISongCat)
@@ -220,9 +225,13 @@ func processSongbeamerSongs(songs map[string]churchtools.Song) map[string]church
 				// TODO arrangement erkennen
 				err := song.FixFilename()
 				if err != nil {
-					log.Infof("Cannot fix filename %s", err)
+					log.Infof("Kann Dateinamen nicht korrigieren: %s", err)
 					song.MoveToDuplicates(duplicates)
 				}
+				continue
+			}
+			if isAutoUpload {
+				log.Debugf("Überspringe %s da Auto-Update", song.Title)
 				continue
 			}
 
