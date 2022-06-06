@@ -132,7 +132,7 @@ func Printf(format string, args ...any) {
 }
 
 func Println(args ...any) {
-	Print(args, "\n")
+	Print(args, "\r\n")
 }
 
 func Print(args ...any) {
