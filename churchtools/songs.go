@@ -11,6 +11,7 @@ import (
 
 // GetSongs returns the Songs as sent by churchservice/getAllSongs endpoint
 func GetSongs() (map[string]Song, error) {
+	log.Debugf("Enter GetSongs")
 	if client == nil {
 		login()
 	}
@@ -29,11 +30,6 @@ func GetSongs() (map[string]Song, error) {
 	if jsonErr != nil {
 		return nil, fmt.Errorf("unable to parse value: %q, error: %s", string(data), jsonErr.Error())
 	}
-	// // log.Println(r)
-	// for s := range r.Data.Songs {
-	// 	log.Printf("[%05d] %s", r.Data.Songs[s].ID, string(r.Data.Songs[s].Bezeichnung))
-	// }
-
 	return r.Data.Songs, nil
 }
 

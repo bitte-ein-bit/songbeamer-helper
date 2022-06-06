@@ -17,8 +17,9 @@ import (
 )
 
 func CheckForError(e error) {
+	log.Debugf("Enter CheckForError")
 	if e != nil {
-		log.Fatalf("%s", e)
+		log.Fatalf("%v", e)
 	}
 }
 

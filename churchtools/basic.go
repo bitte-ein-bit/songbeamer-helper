@@ -41,6 +41,7 @@ func setupClient() {
 }
 
 func login() {
+	log.Debugf("Enter login")
 	if client == nil {
 		setupClient()
 	}
