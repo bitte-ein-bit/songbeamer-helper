@@ -33,9 +33,9 @@ const (
 )
 
 func uploadToChurchTools(isAutoUpload bool) {
-	if !isAutoUpload {
-		log.SetLevel(log.Debug)
-	}
+	// if !isAutoUpload {
+	// 	log.SetLevel(log.Debug)
+	// }
 	log.Infof("Synchronisiere nach ChurchTools")
 	songs, err := churchtools.GetSongs()
 	util.CheckForError(err)
@@ -153,7 +153,7 @@ func processSongbeamerSongs(songs map[string]churchtools.Song, isAutoUpload bool
 			APIFileToUpdate := *churchtools.NewSongAPIFile(song.Filename, arrangement.ID)
 
 			for _, file := range arrangement.Files {
-				log.Infof("Checking %s aka %s", file.Bezeichnung, file.Filename)
+				log.Debugf("Checking %s aka %s", file.Bezeichnung, file.Filename)
 				if file.Bezeichnung != song.GetFilenameWithoutArrangement() {
 					log.Infof("no match: %s != %s", file.Bezeichnung, song.GetFilenameWithoutArrangement())
 					continue
