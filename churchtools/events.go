@@ -15,8 +15,8 @@ func GetEvents(daysInFuture int) []Event {
 		login()
 	}
 	params := map[string]string{
-		// "from": time.Now().AddDate(0, 0, -14).Format("2006-01-02"),
-		"from": time.Now().Format("2006-01-02"),
+		"from": time.Now().AddDate(0, 0, -14).Format("2006-01-02"),
+		// "from": time.Now().Format("2006-01-02"),
 		"to":   time.Now().AddDate(0, 0, daysInFuture).Format("2006-01-02"),
 	}
 	log.Debugf("%s", params)
