@@ -24,6 +24,10 @@ func (i *APIAgendaItem) ToSongbeamerItem() (text string) {
 	if i.Title == "Count-Down / Jingle" {
 		i.Type = "intro"
 	}
+	// if title contains Kinderprogramm, set MP3
+	if strings.Contains(i.Title, "Kinderprogramm") {
+		i.Type = "kinder"
+	}
 	caption = i.Title
 	switch i.Type {
 	case "song":
@@ -37,6 +41,9 @@ func (i *APIAgendaItem) ToSongbeamerItem() (text string) {
 	case "intro":
 		color = "clBlack"
 		extra += fmt.Sprint("      FileName = 'C:\\Program Files (x86)\\SongBeamer\\Intro.mp3'\n")
+	case "kinder":
+		color = "clBlack"
+		extra += fmt.Sprint("      FileName = 'C:\\Program Files (x86)\\SongBeamer\\Kinder.mp3'\n")
 	}
 	text += fmt.Sprintf("      Caption = '%s'\n      Color = %s\n%s    end", strings.Replace(caption, "'", "'#39'", -1), color, extra)
 	return

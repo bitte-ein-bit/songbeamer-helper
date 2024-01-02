@@ -3,7 +3,7 @@ package churchtools
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"time"
 )
@@ -32,7 +32,7 @@ func (e *Event) GetSongs() []APISong {
 
 	resp := getRequest(fmt.Sprintf("https://%s/api/events/%d/agenda/songs", domain, e.ID), nil)
 	defer resp.Body.Close()
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 
 	if err != nil {
 		log.Fatal(err)
@@ -57,7 +57,7 @@ func (e *Event) GetAgenda() APIAgenda {
 	// TODO: no Agenda setup yet...
 	resp := getRequest(fmt.Sprintf("https://%s/api/events/%d/agenda", domain, e.ID), nil)
 	defer resp.Body.Close()
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 
 	if err != nil {
 		log.Fatal(err)
