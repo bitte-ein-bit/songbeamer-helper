@@ -3,7 +3,7 @@ package churchtools
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/url"
 	"path/filepath"
 	"strconv"
@@ -75,16 +75,16 @@ func (f *APIFile) getUploadName() string {
 func (f *APIFile) Save() error {
 	// AddSongFile Upload and attach a file to a ChurchTools song
 	if f.DomainType == "" {
-		return fmt.Errorf("Please set DomainType")
+		return fmt.Errorf("please set DomainType")
 	}
 	if f.DomainID == 0 {
-		return fmt.Errorf("Please set DomainID")
+		return fmt.Errorf("please set DomainID")
 	}
 	currentID := f.getID()
 	url := fmt.Sprintf("https://%s/api/files/%s/%d", domain, f.DomainType, f.DomainID)
 	request, err := newfileUploadRequest(url, nil, "files[]", f.filepath, "text/plain", f.getUploadName())
 	if err != nil {
-		return fmt.Errorf("Creating request failed: %w", err)
+		return fmt.Errorf("creating request failed: %w", err)
 	}
 
 	resp, err := client.Do(request)
@@ -113,7 +113,7 @@ func (f *APIFile) LoadFromFile(path string) {
 // Delete removes a file by ID from ChurchTools
 func (f APIFile) Delete(ID int) error {
 	if ID == 0 {
-		return fmt.Errorf("Cannot delete file with ID 0")
+		return fmt.Errorf("cannot delete file with ID 0")
 	}
 	params := map[string]string{
 		"func": "delFile",
@@ -122,7 +122,7 @@ func (f APIFile) Delete(ID int) error {
 	resp := postRequest(client, churchServiceAjaxURL, params)
 	// log.Println(resp.Status)
 	defer resp.Body.Close()
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatalf("%s", err)
 	}
@@ -133,7 +133,7 @@ func (f APIFile) Delete(ID int) error {
 		return fmt.Errorf("unable to parse value: %q, error: %s", string(data), jsonErr.Error())
 	}
 	if r.Status != "success" {
-		return fmt.Errorf("Cannot edit arrangement: %s", r.Message)
+		return fmt.Errorf("cannot edit arrangement: %s", r.Message)
 	}
 	return nil
 }

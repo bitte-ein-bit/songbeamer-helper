@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -83,7 +82,7 @@ func LinesFromReader(r io.Reader, c *charmap.Charmap) ([]string, error) {
 }
 
 func DetectEncoding(path string) *charmap.Charmap {
-	dat, err := ioutil.ReadFile(path)
+	dat, err := os.ReadFile(path)
 	CheckForError(err)
 	detector := chardet.NewTextDetector()
 	result, err := detector.DetectBest(dat)

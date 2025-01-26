@@ -3,7 +3,7 @@ package churchtools
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"time"
 
 	"github.com/bitte-ein-bit/songbeamer-helper/log"
@@ -28,7 +28,7 @@ type Song struct {
 // Delete deletes the song from ChurchTools
 func (s *Song) Delete() error {
 	if s.ID == 0 {
-		return fmt.Errorf("Cannot delete file with ID 0")
+		return fmt.Errorf("cannot delete file with ID 0")
 	}
 	params := map[string]string{
 		"func": "deleteSong",
@@ -37,7 +37,7 @@ func (s *Song) Delete() error {
 	resp := postRequest(client, churchServiceAjaxURL, params)
 	log.Println(resp.Status)
 	defer resp.Body.Close()
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -48,7 +48,7 @@ func (s *Song) Delete() error {
 		return fmt.Errorf("unable to parse value: %q, error: %s", string(data), jsonErr.Error())
 	}
 	if r.Status != "success" {
-		return fmt.Errorf("Cannot delete song: %s", r.Message)
+		return fmt.Errorf("cannot delete song: %s", r.Message)
 	}
 	return nil
 }
@@ -73,7 +73,7 @@ func (s *Song) AddArrangement(name string) (int, error) {
 	resp := postRequest(client, churchServiceAjaxURL, params)
 	log.Println(resp.Status)
 	defer resp.Body.Close()
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -84,7 +84,7 @@ func (s *Song) AddArrangement(name string) (int, error) {
 		return 0, fmt.Errorf("unable to parse value: %q, error: %s", string(data), jsonErr.Error())
 	}
 	if r.Status != "success" {
-		return 0, fmt.Errorf("Cannot add arrangement: %s", r.Message)
+		return 0, fmt.Errorf("cannot add arrangement: %s", r.Message)
 	}
 	s.Arrangements[fmt.Sprintf("%d", r.ID)] = SongArrangement{
 		Bezeichnung: name,

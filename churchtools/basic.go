@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/cookiejar"
@@ -56,7 +56,7 @@ func login() {
 		log.Fatalf("%s", err)
 	}
 	defer resp.Body.Close()
-	_, err = ioutil.ReadAll(resp.Body)
+	_, err = io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatalf("%s", err)
 	}
@@ -74,7 +74,7 @@ func getCSRFToken() string {
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set("Content-type", "application/x-www-form-urlencoded")
 	resp, _ := client.Do(req)
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatalf("%s", err)
 	}
@@ -146,7 +146,7 @@ func newfileUploadRequest(uri string, params map[string]string, paramName, path,
 		return nil, err
 	}
 	defer file.Close()
-	fileContents, err := ioutil.ReadAll(file)
+	fileContents, err := io.ReadAll(file)
 	if err != nil {
 		return nil, err
 	}

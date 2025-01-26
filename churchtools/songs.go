@@ -3,7 +3,7 @@ package churchtools
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math"
 
 	"github.com/bitte-ein-bit/songbeamer-helper/log"
@@ -20,7 +20,7 @@ func GetSongs() (map[string]Song, error) {
 	resp := getRequest(churchServiceAjaxURL, params)
 	log.Println(resp.Status)
 	defer resp.Body.Close()
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 
 	if err != nil {
 		log.Fatal(err)
@@ -53,7 +53,7 @@ func AddSong(bezeichnung, author, copyright, ccli, tonality, bpm, beat, songCat 
 	resp := postRequest(client, churchServiceAjaxURL, params)
 	log.Println(resp.Status)
 	defer resp.Body.Close()
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 
 	if err != nil {
 		log.Fatal(err)
@@ -75,7 +75,7 @@ func GetSong(songID int) APISong {
 	url := fmt.Sprintf("https://%s/api/songs/%d", domain, songID)
 	resp := getRequest(url, nil)
 	defer resp.Body.Close()
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 
 	if err != nil {
 		log.Fatal(err)
@@ -109,7 +109,7 @@ func EditArrangement(arrangement APISongArrangement, songID int) {
 	resp := postRequest(client, churchServiceAjaxURL, params)
 	log.Println(resp.Status)
 	defer resp.Body.Close()
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatal(err)
 	}
