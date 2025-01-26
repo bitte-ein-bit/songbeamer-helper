@@ -114,12 +114,14 @@ func (s *Song) LoadFromFile(filename string) {
 				ID, err := strconv.Atoi(tmp[0])
 				if err != nil {
 					log.Infof("Invalid ID field, ignoring")
+					continue
 				}
 				s.ChurchToolsID = ID
 				if len(tmp) > 1 {
 					ID, err = strconv.Atoi(tmp[1])
 					if err != nil {
 						log.Infof("Invalid ID field, ignoring")
+						continue
 					}
 					s.ChurchToolsArrangementID = ID
 					s.ChurchToolsArrangement = tmp[2]
@@ -134,6 +136,14 @@ func (s *Song) LoadFromFile(filename string) {
 				s.VerseOrder = header[1]
 			case "Categories":
 				s.Category = strings.Split(header[1], ",")
+			case "Tempo":
+				_, err := strconv.Atoi(header[1])
+				if err != nil {
+					log.Infof("Invalid Tempo field, ignoring")
+					continue
+				}
+				s.BPM = header[1]
+
 			default:
 				if len(header) < 2 {
 					log.Debugf("Header hat ungültige Zeile: %s", line)
@@ -269,6 +279,7 @@ func (s *Song) Save() error {
 	fileContent += nonEmptyHeader("Title", s.Title)
 	fileContent += nonEmptyHeader("VerseOrder", s.VerseOrder)
 	fileContent += nonEmptyHeader("Categories", strings.Join(s.Category, ","))
+	fileContent += nonEmptyHeader("Tempo", s.BPM)
 
 	for name, value := range s.Headers {
 		fileContent += nonEmptyHeader(name, value)
@@ -358,10 +369,16 @@ func (s *Song) Validate(apiSong churchtools.APISong, a churchtools.APISongArrang
 		changed = true
 	}
 
+	if s.BPM != a.BPM {
+		log.Infof("Setze BPM Feld anhand von ChurchTools")
+		s.BPM = a.BPM
+		changed = true
+	}
+
 	if changed {
 		err = s.Save()
 		if err != nil {
-			return fmt.Errorf("Cannot save SNG file: %w", err)
+			return fmt.Errorf("cannot save SNG file: %w", err)
 		}
 		log.Infof("Datei aktualisiert")
 	}

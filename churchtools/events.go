@@ -3,7 +3,7 @@ package churchtools
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"time"
 
 	"github.com/bitte-ein-bit/songbeamer-helper/log"
@@ -22,7 +22,7 @@ func GetEvents(daysInFuture int) []Event {
 	log.Debugf("%s", params)
 	resp := getRequest(fmt.Sprintf("https://%s/api/events", domain), params)
 	defer resp.Body.Close()
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 
 	if err != nil {
 		log.Fatalf("%s", err)

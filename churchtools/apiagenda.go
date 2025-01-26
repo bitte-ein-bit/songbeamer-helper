@@ -25,7 +25,7 @@ type APIAgendaSong struct {
 	Arrangement   string `json:"arrangement"`
 	Category      string `json:"category"`
 	Key           string `json:"key"`
-	BPM           string `json:"bpm"`
+	BPM           int    `json:"bpm"`
 	IsDefault     bool   `json:"isDefault"`
 }
 
