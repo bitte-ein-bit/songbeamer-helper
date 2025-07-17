@@ -15,8 +15,8 @@ type getEventsResponse struct {
 // Event describes an event as returned by the REST api
 type Event struct {
 	ID          int       `json:"id"`
-	EndDate     time.Time `json:"endDate,string"`
-	StartDate   time.Time `json:"startDate,string"`
+	EndDate     time.Time `json:"endDate"`
+	StartDate   time.Time `json:"startDate"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 }

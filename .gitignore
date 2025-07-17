@@ -11,3 +11,4 @@ songs-edited
 *.col
 .googlecloud.json
 *.log
+cov.out

@@ -24,13 +24,6 @@ type CTClient struct {
 	csrftokens   map[string]string
 }
 
-// var basisURL = fmt.Sprintf("https://%s/?q=", domain)
-// var churchServiceAjaxURL = "https://lkg-pfuhl.church.tools/?q=churchservice/ajax"
-// var churchServiceFiledownloadURL = "https://lkg-pfuhl.church.tools/?q=churchservice/filedownload"
-
-// const userid = "2392"
-// const token = "23bwRElUXrBXmriaIrMP8vrJAxoIcJH9KJGfTLsEHpusNqnLnnwTBWLLbdjzKilg3Ns0vxZB8SCGATeGc3D8zIgEiqjtpP1VHo64vO9fjFvGcb2wueQETwI8a3w6kWdOoNdR3ZPzm0G50HOczY2AOILkA0fxlb1sboiLPcvNEYuRuCHe3kKe9TFOloFSQLvBrYrRdag0C6qpd3A9YW4XW4byQjsGOKhhPCgoA54nDwHoauLtS8hKD2XdSq9i6sPA"
-
 func (c *CTClient) setupClient() {
 	options := cookiejar.Options{
 		PublicSuffixList: publicsuffix.List,
@@ -44,7 +37,7 @@ func (c *CTClient) setupClient() {
 }
 
 // Login logs into ChurchTools
-func (c *CTClient) Login() {
+func (c *CTClient) Login() error{
 	if c.client == nil {
 		c.setupClient()
 	}
@@ -63,7 +56,8 @@ func (c *CTClient) Login() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println("Login successful")
+	log.Debugf("Login successful")
+	return nil
 }
 
 func (c *CTClient) getCSRFToken() string {
@@ -92,7 +86,7 @@ func (c *CTClient) getCSRFToken() string {
 }
 
 // GetRequest executes a HTTP Get request
-func (c *CTClient) GetRequest(url string, params map[string]string) http.Response {
+func (c *CTClient) GetRequest(url string, params map[string]string) *http.Response {
 	if c.client == nil {
 		log.Fatal("please login first")
 	}
@@ -110,11 +104,11 @@ func (c *CTClient) GetRequest(url string, params map[string]string) http.Respons
 	if err != nil {
 		log.Fatal(err)
 	}
-	return *resp
+	return resp
 }
 
 // PostRequest executes a HTTP Post request
-func (c *CTClient) PostRequest(url string, params map[string]string) http.Response {
+func (c *CTClient) PostRequest(url string, params map[string]string) *http.Response {
 	if c.client == nil {
 		log.Fatal("please login first")
 	}
@@ -135,7 +129,35 @@ func (c *CTClient) PostRequest(url string, params map[string]string) http.Respon
 		log.Fatal(err)
 	}
 	// log.Println(resp.Header)
-	return *resp
+	return resp
+}
+
+// DeleteRequest executes a HTTP Delete request
+func (c *CTClient) DeleteRequest(url string, params map[string]string) (*http.Response, error) {
+	if c.client == nil {
+		log.Fatal("please login first")
+	}
+	req, _ := http.NewRequest("DELETE", url, nil)
+	if params != nil {
+		q := req.URL.Query()
+		for key, value := range params {
+			q.Add(key, value)
+		}
+		req.URL.RawQuery = q.Encode()
+	}
+	req.Header.Set("CSRF-Token", c.getCSRFToken())
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("delete request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Check response status
+	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("failed to delete file (status %d): %s", resp.StatusCode, truncateMessage(string(bodyBytes)))
+	}
+	return resp, nil
 }
 
 func (c *CTClient) escapeQuotes(s string) string {
@@ -191,4 +213,22 @@ func (c *CTClient) NewfileUploadRequest(uri string, params map[string]string, pa
 	// log.Println(body)
 	return req, err
 
+}
+
+// ChurchToolsClient defines the interface for interacting with ChurchTools
+type ChurchToolsClient interface {
+	GetRequest(url string, params map[string]string) *http.Response
+	PostRequest(url string, params map[string]string) *http.Response
+	DeleteRequest(url string, params map[string]string) (*http.Response, error)
+	Login() error
+}
+
+// Ensure CTClient implements ChurchToolsClient
+var _ ChurchToolsClient = &CTClient{}
+
+// NewClient returns a new initialized ChurchToolsClient
+func NewClient() ChurchToolsClient {
+	c := &CTClient{}
+	c.Login()
+	return c
 }

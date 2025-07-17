@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"time"
 
@@ -17,8 +18,13 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Create a package-level variable to hold the client
+var client churchtools.ChurchToolsClient
+
 func init() {
 	RootCmd.AddCommand(cmdCTDownload)
+	// Initialize the client
+	client = churchtools.NewClient()
 }
 
 var cmdCTDownload = &cobra.Command{
@@ -34,7 +40,14 @@ var cmdCTDownload = &cobra.Command{
 }
 
 func selectCTEvent() (event churchtools.Event) {
-	events := churchtools.GetEvents(8)
+	// Check OS and set appropriate parameter
+	lookBehindDays := 14
+	if runtime.GOOS == "windows" {
+		lookBehindDays = 0
+	}
+
+	// Use the client interface to get events
+	events := churchtools.GetEvents(client, 8, lookBehindDays)
 	if len(events) == 0 {
 		log.Errorf("In den nächsten 6 Tagen wurden keine Verantstaltungen gefunden.")
 		return
@@ -50,12 +63,9 @@ func downloadSongsForCTEvent(event churchtools.Event) {
 		return
 	}
 
-	c := churchtools.CTClient{}
-	c.Login()
-
 	path := viper.GetString("songspath")
 	for _, song := range songs {
-		_, err := DownloadSongbeamerFiles(c, song, path)
+		_, err := DownloadSongbeamerFiles(song, path)
 		if err != nil {
 			log.Errorf("Cannot download song: %v", err)
 		}
@@ -99,8 +109,9 @@ func ask(events []churchtools.Event) (event churchtools.Event) {
 }
 
 // DownloadSongbeamerFile downloads a file from Churchtools so it can be used with Songbeamer
-func DownloadSongbeamerFile(c churchtools.CTClient, s churchtools.APISong, a churchtools.APISongArrangement, f churchtools.APIFile, filename string, UploadIfNeeded bool) (err error) {
-	resp := c.GetRequest(f.FileURL, nil)
+func DownloadSongbeamerFile(s churchtools.APISong, a churchtools.APISongArrangement, f churchtools.APIFile, filename string, UploadIfNeeded bool) (err error) {
+	// Use the client interface instead of passing it as a parameter
+	resp := client.GetRequest(f.FileURL, nil)
 	defer resp.Body.Close()
 
 	last := resp.Header.Get("Last-Modified")
@@ -131,7 +142,7 @@ func DownloadSongbeamerFile(c churchtools.CTClient, s churchtools.APISong, a chu
 }
 
 // DownloadSongbeamerFiles downloads a SNG file from Churchtools Song
-func DownloadSongbeamerFiles(c churchtools.CTClient, s churchtools.APISong, path string) (files []string, err error) {
+func DownloadSongbeamerFiles(s churchtools.APISong, path string) (files []string, err error) {
 	duplicates := viper.GetString("duplicates")
 	if path == "" {
 		return nil, fmt.Errorf("Kann nicht in einen leeren Pfad speichern!")
@@ -144,7 +155,7 @@ func DownloadSongbeamerFiles(c churchtools.CTClient, s churchtools.APISong, path
 				continue
 			}
 			filename := fmt.Sprintf("%s/%s - %s.sng", path, s.Bezeichnung, a.Name)
-			err = DownloadSongbeamerFile(c, s, a, f, filename, true)
+			err = DownloadSongbeamerFile(s, a, f, filename, true)
 			if err != nil {
 				log.Errorf("Fehler beim Download: %w", err)
 			}
@@ -158,7 +169,7 @@ func DownloadSongbeamerFiles(c churchtools.CTClient, s churchtools.APISong, path
 					continue
 				}
 				filename := fmt.Sprintf("%s/%s - %s.sng", path, s.Bezeichnung, a.Name)
-				err = DownloadSongbeamerFile(c, s, a, f, filename, false)
+				err = DownloadSongbeamerFile(s, a, f, filename, false)
 				if err != nil {
 					log.Errorf("Fehler beim Download: %w", err)
 				}
@@ -227,10 +238,10 @@ func createSongbeamerAgenda(event churchtools.Event) {
 	}
 	filename := fmt.Sprintf("%s/Desktop/Ablaufplan_%s.col", home, event.StartDate.Local().Format("2006-01-02_15-04"))
 	f, err := os.Create(filename)
-	defer f.Close()
 	if err != nil {
 		log.Fatalf("Ein Fehler ist beim Erstellen des Ablaufplans aufgetreten: %s", err)
 	}
+	defer f.Close()
 
 	_, err = fmt.Fprint(f, encoded)
 	log.Debugf("ABLAUFPLAN: %v", encoded)
@@ -241,8 +252,4 @@ func createSongbeamerAgenda(event churchtools.Event) {
 
 	color.Set(color.FgGreen)
 	fmt.Printf("Der Ablaufplan wurde nach %s gespeichert.\n", filename)
-
-	// color.Set(color.FgRed)
-	// log.Infof("Das Erstellen des Ablaufplans ist noch nicht implementiert.")
-	// log.Infof("Bitte lade den Ablaufplan aus Churchtools herunter")
 }
