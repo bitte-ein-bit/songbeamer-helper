@@ -77,7 +77,7 @@ func (s *Song) AddArrangement(name string) (int, error) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println(string(data))
+	log.Debugf("[AddArrangement] Response Data: %s", string(data))
 	r := addResponse{}
 	jsonErr := json.Unmarshal(data, &r)
 	if jsonErr != nil {

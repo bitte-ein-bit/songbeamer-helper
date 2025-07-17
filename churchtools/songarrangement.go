@@ -10,8 +10,8 @@ type SongArrangement struct {
 	Tonality     string              `json:"tonality"`
 	BPM          string              `json:"bpm"`
 	Beat         string              `json:"beat"`
-	Minutes      int                 `json:"length_min,string"`
-	Seconds      int                 `json:"length_sec,string"`
+	Minutes      int                 `json:"length_min"`
+	Seconds      int                 `json:"length_sec"`
 	Note         string              `json:"note,omitempty"`
 	ModifiedDate string              `json:"modified_date"`
 	ModifiedPID  int                 `json:"modified_pid,string"`

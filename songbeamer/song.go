@@ -314,6 +314,7 @@ func (s *Song) ExtractArrangementFromFilename() string {
 
 // UploadToArrangement attaches a song to a ChurchTools Songbeamer arrangement
 func (s *Song) UploadToArrangement(arrangement churchtools.SongArrangement, duplicatesPath string) error {
+	log.Debugf("Upload %s to arrangement %s", s.Filename, arrangement.Bezeichnung)
 	s.SetID(s.ChurchToolsID, arrangement)
 	s.Save()
 	err := s.FixFilename()
