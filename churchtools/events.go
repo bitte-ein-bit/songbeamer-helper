@@ -10,17 +10,14 @@ import (
 )
 
 // GetEvents returns the next events from today until daysInFuture days
-func GetEvents(daysInFuture int) []Event {
-	if client == nil {
-		login()
-	}
+func GetEvents(client ChurchToolsClient, daysInFuture, daysInPast int) []Event {
 	params := map[string]string{
-		"from": time.Now().AddDate(0, 0, -14).Format("2006-01-02"),
-		//"from": time.Now().Format("2006-01-02"),
+		"from": time.Now().AddDate(0, 0, -daysInPast).Format("2006-01-02"),
 		"to":   time.Now().AddDate(0, 0, daysInFuture).Format("2006-01-02"),
 	}
 	log.Debugf("%s", params)
-	resp := getRequest(fmt.Sprintf("https://%s/api/events", domain), params)
+	url := fmt.Sprintf("https://%s/api/events", domain)
+	resp := client.GetRequest(url, params)
 	defer resp.Body.Close()
 	data, err := io.ReadAll(resp.Body)
 
