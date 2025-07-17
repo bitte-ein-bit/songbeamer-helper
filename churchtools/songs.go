@@ -9,6 +9,17 @@ import (
 	"github.com/bitte-ein-bit/songbeamer-helper/log"
 )
 
+const (
+	maxSize = 200*1024 // Maximum size of a message before truncating
+)
+
+func truncateMessage(message string) string {
+    if len(message) <= maxSize {
+        return message
+    }
+    return message[:maxSize] + "... [truncated]"
+}
+
 // GetSongs returns the Songs as sent by churchservice/getAllSongs endpoint
 func GetSongs() (map[string]Song, error) {
 	log.Debugf("Enter GetSongs")
@@ -18,7 +29,7 @@ func GetSongs() (map[string]Song, error) {
 	params := make(map[string]string)
 	params["func"] = "getAllSongs"
 	resp := getRequest(churchServiceAjaxURL, params)
-	log.Println(resp.Status)
+	log.Debugf("Response Status: %s", resp.Status)
 	defer resp.Body.Close()
 	data, err := io.ReadAll(resp.Body)
 
@@ -26,10 +37,14 @@ func GetSongs() (map[string]Song, error) {
 		log.Fatal(err)
 	}
 	r := songResponse{}
+
 	jsonErr := json.Unmarshal(data, &r)
 	if jsonErr != nil {
-		return nil, fmt.Errorf("unable to parse value: %q, error: %s", string(data), jsonErr.Error())
+		println(string(data))
+		log.Debugf("Data: %s",truncateMessage(string(data)))
+		return nil, fmt.Errorf("unable to parse value, error: %s", jsonErr.Error())
 	}
+	log.Debugf("GetSongs: %d songs found", len(r.Data.Songs))
 	return r.Data.Songs, nil
 }
 

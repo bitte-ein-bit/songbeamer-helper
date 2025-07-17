@@ -10,3 +10,4 @@ songs-org/
 songs-edited
 *.col
 .googlecloud.json
+*.log

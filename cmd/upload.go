@@ -22,6 +22,7 @@ var cmdCTUpload = &cobra.Command{
 	Short: "Push songs to ChurchTools",
 	Long:  `Sync changes to ChurchTools`,
 	Run: func(cmd *cobra.Command, args []string) {
+		log.SetLevel(log.Debug)
 		uploadToChurchTools(false)
 		log.Finalize()
 	},
@@ -123,9 +124,10 @@ func processSongbeamerSongs(songs map[string]churchtools.Song, isAutoUpload bool
 				}
 			}
 			if arrangement.ID == 0 {
-				log.Infof("Scheinbar wurde die Datei zu einem neuen Arrangement %s umbenannt", a)
+				log.Infof("Scheinbar wurde die Datei zu einem neuen Arrangement '%s' umbenannt", a)
 				arrangementID, err := ctSong.AddArrangement(a)
 				util.CheckForError(err)
+				log.Debugf("New arrangement ID: %d", arrangementID)
 				arrangement = churchtools.SongArrangement{
 					ID:          arrangementID,
 					Bezeichnung: a,
