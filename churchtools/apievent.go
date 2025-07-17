@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"time"
+
+	"github.com/bitte-ein-bit/songbeamer-helper/log"
 )
 
 type getEventsResponse struct {
@@ -22,15 +23,13 @@ type Event struct {
 }
 
 // GetSongs returns all Songs the user has access to that are part of this event
-func (e *Event) GetSongs() []APISong {
+func (e *Event) GetSongs(client ChurchToolsClient) []APISong {
+	log.Debugf("GetSongs for event %d", e.ID)
 	if e.ID == 0 {
 		log.Fatal("Cannot load songs for uninitialzed event")
 	}
-	if client == nil {
-		login()
-	}
 
-	resp := getRequest(fmt.Sprintf("https://%s/api/events/%d/agenda/songs", domain, e.ID), nil)
+	resp := client.GetRequest(fmt.Sprintf("https://%s/api/events/%d/agenda/songs", domain, e.ID), nil)
 	defer resp.Body.Close()
 	data, err := io.ReadAll(resp.Body)
 
@@ -46,16 +45,13 @@ func (e *Event) GetSongs() []APISong {
 }
 
 // GetAgenda retuns the Agenda for the Event
-func (e *Event) GetAgenda() APIAgenda {
+func (e *Event) GetAgenda(client ChurchToolsClient) APIAgenda {
 	if e.ID == 0 {
 		log.Fatal("Cannot load songs for uninitialzed event")
 	}
-	if client == nil {
-		login()
-	}
 
 	// TODO: no Agenda setup yet...
-	resp := getRequest(fmt.Sprintf("https://%s/api/events/%d/agenda", domain, e.ID), nil)
+	resp := client.GetRequest(fmt.Sprintf("https://%s/api/events/%d/agenda", domain, e.ID), nil)
 	defer resp.Body.Close()
 	data, err := io.ReadAll(resp.Body)
 

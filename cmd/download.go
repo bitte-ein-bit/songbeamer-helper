@@ -32,6 +32,9 @@ var cmdCTDownload = &cobra.Command{
 	Short: "Download songs for event from Churchtools",
 	Long:  `Downloads songs from CT that are listed on the selected event.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		if runtime.GOOS != "windows" {
+			log.SetLevel(log.Debug)
+		}
 		event := selectCTEvent()
 		downloadSongsForCTEvent(event)
 		createSongbeamerAgenda(event)
@@ -57,7 +60,7 @@ func selectCTEvent() (event churchtools.Event) {
 }
 
 func downloadSongsForCTEvent(event churchtools.Event) {
-	songs := event.GetSongs()
+	songs := event.GetSongs(client)
 	if len(songs) == 0 {
 		log.Errorf("Es sind keine Songs in der Agenda hinterlegt.")
 		return
@@ -189,7 +192,7 @@ func DownloadSongbeamerFiles(s churchtools.APISong, path string) (files []string
 }
 
 func createSongbeamerAgenda(event churchtools.Event) {
-	a := event.GetAgenda()
+	a := event.GetAgenda(client)
 	content := "object AblaufPlanItems: TAblaufPlanItems\n  items = <"
 	for _, item := range a.Items {
 		content += "\n" + item.ToSongbeamerItem()
