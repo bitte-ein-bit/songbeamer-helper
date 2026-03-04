@@ -28,6 +28,7 @@ const token = "23bwRElUXrBXmriaIrMP8vrJAxoIcJH9KJGfTLsEHpusNqnLnnwTBWLLbdjzKilg3
 
 var csrftokens map[string]string
 var client *http.Client
+var globalCTClient ChurchToolsClient
 
 func setupClient() {
 	options := cookiejar.Options{
@@ -42,6 +43,7 @@ func setupClient() {
 
 func login() {
 	log.Debugf("Enter login")
+	log.Fatal("Should not be called")
 	if client == nil {
 		setupClient()
 	}
@@ -64,6 +66,10 @@ func login() {
 }
 
 func getCSRFToken() string {
+	if globalCTClient != nil {
+		ctc := globalCTClient.(*CTClient)
+		return ctc.getCSRFToken()
+	}
 	if csrftokens == nil {
 		csrftokens = make(map[string]string)
 	}
@@ -74,6 +80,7 @@ func getCSRFToken() string {
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set("Content-type", "application/x-www-form-urlencoded")
 	resp, _ := client.Do(req)
+	defer resp.Body.Close()
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatalf("%s", err)

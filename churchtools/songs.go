@@ -10,25 +10,22 @@ import (
 )
 
 const (
-	maxSize = 200*1024 // Maximum size of a message before truncating
+	maxSize = 200 * 1024 // Maximum size of a message before truncating
 )
 
 func truncateMessage(message string) string {
-    if len(message) <= maxSize {
-        return message
-    }
-    return message[:maxSize] + "... [truncated]"
+	if len(message) <= maxSize {
+		return message
+	}
+	return message[:maxSize] + "... [truncated]"
 }
 
 // GetSongs returns the Songs as sent by churchservice/getAllSongs endpoint
-func GetSongs() (map[string]Song, error) {
+func GetSongs(client ChurchToolsClient) (map[string]Song, error) {
 	log.Debugf("Enter GetSongs")
-	if client == nil {
-		login()
-	}
 	params := make(map[string]string)
 	params["func"] = "getAllSongs"
-	resp := getRequest(churchServiceAjaxURL, params)
+	resp := client.GetRequest(churchServiceAjaxURL, params)
 	log.Debugf("Response Status: %s", resp.Status)
 	defer resp.Body.Close()
 	data, err := io.ReadAll(resp.Body)
@@ -41,7 +38,7 @@ func GetSongs() (map[string]Song, error) {
 	jsonErr := json.Unmarshal(data, &r)
 	if jsonErr != nil {
 		println(string(data))
-		log.Debugf("Data: %s",truncateMessage(string(data)))
+		log.Debugf("Data: %s", truncateMessage(string(data)))
 		return nil, fmt.Errorf("unable to parse value, error: %s", jsonErr.Error())
 	}
 	log.Debugf("GetSongs: %d songs found", len(r.Data.Songs))

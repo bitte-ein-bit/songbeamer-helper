@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"runtime"
 	"sync"
 
@@ -55,59 +56,125 @@ type GoogleCloudCreds struct {
 	// Add other fields as needed
 }
 
-// Default log level is Error.
+// Default log level is Info.
 var (
-	level         = Info
-	lock          sync.Mutex
-	debugLogger   *log.Logger = nil
-	infoLogger    *log.Logger = nil
-	warningLogger *log.Logger = nil
-	errorLogger   *log.Logger = nil
-	fatalLogger   *log.Logger = nil
+	level   = Info
+	lock    sync.Mutex
+	loggers = make(map[string]*log.Logger) // stores all loggers by level name
 
-	client *logging.Client
+	client   *logging.Client
+	usingGCP bool = false // tracks whether GCP logging is active
 )
 
 func init() {
+	// Try to initialize GCP logging, fall back to local logging on failure
+	if !initGCPLogging() {
+		initLocalLogging()
+	}
+}
+
+// initGCPLogging attempts to set up Google Cloud Platform logging
+// Returns true on success, false on failure
+func initGCPLogging() bool {
 	var err error
 	ctx := context.Background()
 
 	// decode the base64 encoded credentials
 	decodedCreds, err := base64.StdEncoding.DecodeString(credsJSON)
 	if err != nil {
-		log.Fatalf("Failed to decode credentials: %v", err)
+		log.Printf("Warning: Failed to decode GCP credentials: %v. Falling back to local logging.", err)
+		return false
 	}
 
 	// parse the JSON credentials
 	var creds GoogleCloudCreds
 	err = json.Unmarshal(decodedCreds, &creds)
 	if err != nil {
-		log.Fatalf("Failed to parse credentials: %v", err)
+		log.Printf("Warning: Failed to parse GCP credentials: %v. Falling back to local logging.", err)
+		return false
 	}
 
 	// Sets your Google Cloud Platform project ID dynamically from credentials.
 	projectID := fmt.Sprintf("projects/%s", creds.ProjectID)
 
 	// Creates a client.
-	client, err := logging.NewClient(ctx, projectID, option.WithCredentialsJSON(decodedCreds))
+	client, err = logging.NewClient(ctx, projectID, option.WithCredentialsJSON(decodedCreds))
 	if err != nil {
-		log.Fatalf("Failed to create client: %v", err)
+		log.Printf("Warning: Failed to create GCP logging client: %v. Falling back to local logging.", err)
+		return false
 	}
-	// defer client.Close()
 
 	// Sets the name of the log to write to.
 	logName := "songbeamer-helper"
+	gcpLogger := client.Logger(logName)
 
-	infoLogger = client.Logger(logName).StandardLogger(logging.Info)
-	debugLogger = client.Logger(logName).StandardLogger(logging.Debug)
-	warningLogger = client.Logger(logName).StandardLogger(logging.Warning)
-	errorLogger = client.Logger(logName).StandardLogger(logging.Error)
-	fatalLogger = client.Logger(logName).StandardLogger(logging.Emergency)
+	// Initialize all loggers with their respective severity levels
+	loggers["info"] = gcpLogger.StandardLogger(logging.Info)
+	loggers["debug"] = gcpLogger.StandardLogger(logging.Debug)
+	loggers["warning"] = gcpLogger.StandardLogger(logging.Warning)
+	loggers["error"] = gcpLogger.StandardLogger(logging.Error)
+	loggers["fatal"] = gcpLogger.StandardLogger(logging.Emergency)
 
-	// log.SetFlags(log.LstdFlags | log.Lshortfile)
+	usingGCP = true
+	loggers["info"].Println("GCP logging initialized successfully")
+	return true
+}
 
-	infoLogger.Println("logging initialized")
-	debugLogger.Println("debug test")
+// initLocalLogging sets up local file-based logging as a fallback
+func initLocalLogging() {
+	log.Println("Initializing local logging...")
+
+	// Create simple loggers that write to stderr
+	for _, level := range []string{"info", "debug", "warning", "error", "fatal"} {
+		loggers[level] = log.New(os.Stderr, "", 0)
+	}
+
+	log.Println("Local logging initialized")
+}
+
+// getLogger retrieves the appropriate logger for a given level
+func getLogger(level string) *log.Logger {
+	if l, ok := loggers[level]; ok {
+		return l
+	}
+	return loggers["info"] // fallback
+}
+
+// logWithLevel is a helper function that handles logging with level checks and formatting
+func logWithLevel(loggerName, prefix string, minLevel int, useColor bool, colorAttr color.Attribute, format string, args ...any) {
+	lock.Lock()
+	defer lock.Unlock()
+
+	// Always log to remote logger (GCP or local file)
+	logger := getLogger(loggerName)
+
+	// For GCP debug logs, include file/line info
+	if usingGCP && loggerName == "debug" {
+		_, filename, line, _ := runtime.Caller(2)
+		msg := fmt.Sprintf("[%s][%d] %s", filename, line, format)
+		logger.Printf(msg, args...)
+	} else {
+		logger.Printf(format, args...)
+	}
+
+	// Check if we should also log to console
+	if level < minLevel {
+		return
+	}
+
+	// Format and log to console for visibility
+	msg := fmt.Sprintf("%s: %s", prefix, format)
+	if len(args) > 0 {
+		msg = fmt.Sprintf(msg, args...)
+	}
+
+	if useColor {
+		color.Set(colorAttr)
+		log.Println(msg)
+		color.Unset()
+	} else {
+		log.Println(msg)
+	}
 }
 
 // SetLevel sets the global log level.
@@ -122,17 +189,24 @@ func Printf(format string, args ...any) {
 	lock.Lock()
 	defer lock.Unlock()
 
-	infoLogger.Printf(format, args...)
-	msg := fmt.Sprintf("%s", format)
-	if len(args) > 0 {
-		msg = fmt.Sprintf(msg, args...)
-	}
+	msg := fmt.Sprintf(format, args...)
+	getLogger("info").Print(msg)
 
-	fmt.Print(msg)
+	if usingGCP {
+		fmt.Print(msg)
+	}
 }
 
 func Println(args ...any) {
-	Print(args, "\r\n")
+	lock.Lock()
+	defer lock.Unlock()
+
+	msg := fmt.Sprintln(args...)
+	getLogger("info").Print(msg)
+
+	if usingGCP {
+		fmt.Print(msg)
+	}
 }
 
 func Print(args ...any) {
@@ -140,111 +214,68 @@ func Print(args ...any) {
 	defer lock.Unlock()
 
 	msg := fmt.Sprint(args...)
-	infoLogger.Print(msg)
-	fmt.Print(msg)
+	getLogger("info").Print(msg)
+
+	if usingGCP {
+		fmt.Print(msg)
+	}
 }
 
 // Infof logs an info message.
 func Infof(format string, args ...any) {
-	lock.Lock()
-	defer lock.Unlock()
-	infoLogger.Printf(format, args...)
-	if level < Info {
-		return
-	}
-
-	msg := fmt.Sprintf("INFO: %s", format)
-	if len(args) > 0 {
-		msg = fmt.Sprintf(msg, args...)
-	}
-
-	log.Println(msg)
+	logWithLevel("info", "INFO", Info, false, 0, format, args...)
 }
 
 // Debugf logs a debug message.
 func Debugf(format string, args ...any) {
-	lock.Lock()
-	defer lock.Unlock()
-	_, filename, line, _ := runtime.Caller(1)
-	msg := fmt.Sprintf("[%s][%d] %s", filename, line, format)
-	debugLogger.Printf(msg, args...)
-	if level < Debug {
-		return
-	}
-
-	msg = fmt.Sprintf("DEBUG: %s", format)
-	if len(args) > 0 {
-		msg = fmt.Sprintf(msg, args...)
-	}
-	color.Set(color.FgBlue)
-	log.Println(msg)
-	color.Unset()
+	logWithLevel("debug", "DEBUG", Debug, true, color.FgBlue, format, args...)
 }
 
-// Warnf logs an error message.
+// Warnf logs a warning message.
 func Warnf(format string, args ...any) {
-	lock.Lock()
-	defer lock.Unlock()
-	warningLogger.Printf(format, args...)
-	if level < Warning {
-		return
-	}
-
-	msg := fmt.Sprintf("WARNING: %s", format)
-	if len(args) > 0 {
-		msg = fmt.Sprintf(msg, args...)
-	}
-
-	color.Set(color.FgHiYellow)
-	log.Println(msg)
-	color.Unset()
+	logWithLevel("warning", "WARNING", Warning, true, color.FgHiYellow, format, args...)
 }
 
 // Errorf logs an error message.
 func Errorf(format string, args ...any) {
-	lock.Lock()
-	defer lock.Unlock()
-	errorLogger.Printf(format, args...)
-	if level < Error {
-		return
-	}
-
-	msg := fmt.Sprintf("ERROR: %s", format)
-	if len(args) > 0 {
-		msg = fmt.Sprintf(msg, args...)
-	}
-
-	color.Set(color.FgRed)
-	log.Println(msg)
-	color.Unset()
+	logWithLevel("error", "ERROR", Error, true, color.FgRed, format, args...)
 }
 
-// Fatalf logs an error message.
+// Fatalf logs a fatal message and exits.
 func Fatalf(format string, args ...any) {
 	lock.Lock()
 	defer lock.Unlock()
-	fatalLogger.Printf(format, args...)
+
+	getLogger("fatal").Printf(format, args...)
+
 	msg := fmt.Sprintf("FATAL: %v", format)
 	if len(args) > 0 {
 		msg = fmt.Sprintf(msg, args...)
 	}
+
 	Finalize()
 	log.Fatal(msg)
 }
 
+// Fatal logs a fatal message and exits.
 func Fatal(v ...any) {
 	lock.Lock()
 	defer lock.Unlock()
+
 	msg := fmt.Sprint(v...)
-	fatalLogger.Print(msg)
+	getLogger("fatal").Print(msg)
+
 	Finalize()
 	log.Fatal(msg)
 }
 
 // Finalize makes sure all logs are sent to GCP
 func Finalize() {
+	if !usingGCP || client == nil {
+		return
+	}
 	err := client.Close()
 	if err != nil {
-		log.Fatalf("Fehler beim Hochladen der Logs: %v", err)
+		log.Printf("Error closing GCP logging client: %v", err)
 	}
 }

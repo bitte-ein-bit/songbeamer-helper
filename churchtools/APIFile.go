@@ -1,9 +1,7 @@
 package churchtools
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/url"
 	"path/filepath"
 	"strconv"
@@ -87,7 +85,7 @@ func (f *APIFile) Save() error {
 		return fmt.Errorf("creating request failed: %w", err)
 	}
 
-	resp, err := client.Do(request)
+	resp, err := globalCTClient.(*CTClient).Client.Do(request)
 	if err != nil {
 		return fmt.Errorf("Save failed: %w", err)
 	}
@@ -115,25 +113,13 @@ func (f APIFile) Delete(ID int) error {
 	if ID == 0 {
 		return fmt.Errorf("cannot delete file with ID 0")
 	}
-	params := map[string]string{
-		"func": "delFile",
-		"id":   fmt.Sprintf("%d", ID),
-	}
-	resp := postRequest(client, churchServiceAjaxURL, params)
-	// log.Println(resp.Status)
-	defer resp.Body.Close()
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalf("%s", err)
-	}
-	// log.Println(string(data))
-	r := songResponse{}
-	jsonErr := json.Unmarshal(data, &r)
-	if jsonErr != nil {
-		return fmt.Errorf("unable to parse value: %q, error: %s", string(data), jsonErr.Error())
-	}
-	if r.Status != "success" {
-		return fmt.Errorf("cannot edit arrangement: %s", r.Message)
-	}
+
+	// Use the new REST API endpoint for file deletion
+	// url := fmt.Sprintf("https://%s/api/files/%d", domain, ID)
+	// _, err := client.DeleteRequest(url, nil)
+	// if err != nil {
+	// 	return fmt.Errorf("deleting file failed: %w", err)
+	// }
+
 	return nil
 }

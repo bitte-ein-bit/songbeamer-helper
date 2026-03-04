@@ -64,33 +64,28 @@ func (s *Song) GetDefaultArrangement() (ret SongArrangement) {
 }
 
 // AddArrangement adds an additional arrangement to an existing song on ChurchTools. It does return the ID of the new arrangement
-func (s *Song) AddArrangement(name string) (int, error) {
+func (s *Song) AddArrangement(client ChurchToolsClient, name string) (int, error) {
+	url := fmt.Sprintf("https://%s/api/songs/%d/arrangements", domain, s.ID)
 	params := map[string]string{
-		"func":        "addArrangement",
-		"bezeichnung": name,
-		"song_id":     fmt.Sprintf("%d", s.ID),
+		"name": name,
 	}
-	resp := postRequest(client, churchServiceAjaxURL, params)
-	log.Println(resp.Status)
+	resp := client.PostRequest(url, params)
 	defer resp.Body.Close()
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatal(err)
 	}
 	log.Debugf("[AddArrangement] Response Data: %s", string(data))
-	r := addResponse{}
+	r := addArrangementResponse{}
 	jsonErr := json.Unmarshal(data, &r)
 	if jsonErr != nil {
 		return 0, fmt.Errorf("unable to parse value: %q, error: %s", string(data), jsonErr.Error())
 	}
-	if r.Status != "success" {
-		return 0, fmt.Errorf("cannot add arrangement: %s", r.Message)
-	}
-	s.Arrangements[fmt.Sprintf("%d", r.ID)] = SongArrangement{
+	s.Arrangements[fmt.Sprintf("%d", r.Data.ID)] = SongArrangement{
 		Bezeichnung: name,
-		ID:          r.ID,
+		ID:          r.Data.ID,
 	}
-	return r.ID, nil
+	return r.Data.ID, nil
 }
 
 // GetModificationDate parses the date string returned by the API into a time struct

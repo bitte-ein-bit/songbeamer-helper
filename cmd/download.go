@@ -160,7 +160,7 @@ func DownloadSongbeamerFiles(s churchtools.APISong, path string) (files []string
 			filename := fmt.Sprintf("%s/%s - %s.sng", path, s.Bezeichnung, a.Name)
 			err = DownloadSongbeamerFile(s, a, f, filename, true)
 			if err != nil {
-				log.Errorf("Fehler beim Download: %w", err)
+				log.Errorf("Fehler beim Download: %v", err)
 			}
 			loaded = true
 			files = append(files, filename)
@@ -174,7 +174,7 @@ func DownloadSongbeamerFiles(s churchtools.APISong, path string) (files []string
 				filename := fmt.Sprintf("%s/%s - %s.sng", path, s.Bezeichnung, a.Name)
 				err = DownloadSongbeamerFile(s, a, f, filename, false)
 				if err != nil {
-					log.Errorf("Fehler beim Download: %w", err)
+					log.Errorf("Fehler beim Download: %v", err)
 				}
 				sng := songbeamer.Song{}
 				sng.LoadFromFile(filename)

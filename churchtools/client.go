@@ -19,7 +19,7 @@ import (
 
 // CTClient abstracts a little the HTTP handling for ChurchTools
 type CTClient struct {
-	client       *http.Client
+	Client       *http.Client
 	quoteEscaper *strings.Replacer
 	csrftokens   map[string]string
 }
@@ -32,17 +32,18 @@ func (c *CTClient) setupClient() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	c.client = &http.Client{Jar: jar}
+	c.Client = &http.Client{Jar: jar}
 	c.quoteEscaper = strings.NewReplacer("\\", "\\\\", `"`, "\\\"")
+	c.csrftokens = make(map[string]string)
 }
 
 // Login logs into ChurchTools
-func (c *CTClient) Login() error{
-	if c.client == nil {
+func (c *CTClient) Login() error {
+	if c.Client == nil {
 		c.setupClient()
 	}
 	loginurl := fmt.Sprintf("%slogin/ajax", basisURL)
-	resp, err := c.client.PostForm(loginurl, url.Values{
+	resp, err := c.Client.PostForm(loginurl, url.Values{
 		"func":       {"loginWithToken"},
 		"id":         {userid},
 		"token":      {token},
@@ -61,16 +62,18 @@ func (c *CTClient) Login() error{
 }
 
 func (c *CTClient) getCSRFToken() string {
+	log.Debugf("Get CSRF Token")
 	if c.csrftokens == nil {
 		c.csrftokens = make(map[string]string)
 	}
-	if val, ok := csrftokens[domain]; ok {
+	if val, ok := c.csrftokens[domain]; ok {
 		return val
 	}
 	url := fmt.Sprintf("https://%s/api/csrftoken", domain)
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set("Content-type", "application/x-www-form-urlencoded")
-	resp, _ := c.client.Do(req)
+	resp, _ := c.Client.Do(req)
+	defer resp.Body.Close()
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatal(err)
@@ -80,16 +83,13 @@ func (c *CTClient) getCSRFToken() string {
 	if jsonErr != nil {
 		log.Fatalf("unable to parse value: %q, error: %s", string(data), jsonErr.Error())
 	}
-	// log.Printf("Token: %s\n", csrftoken1.Token)
+	log.Debugf("Token: %s\n", csrftoken1.Token)
 	c.csrftokens[domain] = csrftoken1.Token
 	return csrftoken1.Token
 }
 
 // GetRequest executes a HTTP Get request
 func (c *CTClient) GetRequest(url string, params map[string]string) *http.Response {
-	if c.client == nil {
-		log.Fatal("please login first")
-	}
 	req, _ := http.NewRequest("GET", url, nil)
 	if params != nil {
 		q := req.URL.Query()
@@ -100,7 +100,9 @@ func (c *CTClient) GetRequest(url string, params map[string]string) *http.Respon
 	}
 	req.Header.Set("Content-type", "application/x-www-form-urlencoded")
 	req.Header.Set("CSRF-Token", c.getCSRFToken())
-	resp, err := c.client.Do(req)
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("authorization", "Login "+token)
+	resp, err := c.Client.Do(req)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -109,9 +111,6 @@ func (c *CTClient) GetRequest(url string, params map[string]string) *http.Respon
 
 // PostRequest executes a HTTP Post request
 func (c *CTClient) PostRequest(url string, params map[string]string) *http.Response {
-	if c.client == nil {
-		log.Fatal("please login first")
-	}
 	req, _ := http.NewRequest("POST", url, nil)
 	if params != nil {
 		// log.Infof(params)
@@ -123,8 +122,10 @@ func (c *CTClient) PostRequest(url string, params map[string]string) *http.Respo
 	}
 	req.Header.Set("Content-type", "application/x-www-form-urlencoded")
 	req.Header.Set("CSRF-Token", c.getCSRFToken())
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("authorization", "Login "+token)
 	// log.Println(req.Header)
-	resp, err := c.client.Do(req)
+	resp, err := c.Client.Do(req)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -134,9 +135,6 @@ func (c *CTClient) PostRequest(url string, params map[string]string) *http.Respo
 
 // DeleteRequest executes a HTTP Delete request
 func (c *CTClient) DeleteRequest(url string, params map[string]string) (*http.Response, error) {
-	if c.client == nil {
-		log.Fatal("please login first")
-	}
 	req, _ := http.NewRequest("DELETE", url, nil)
 	if params != nil {
 		q := req.URL.Query()
@@ -146,7 +144,9 @@ func (c *CTClient) DeleteRequest(url string, params map[string]string) (*http.Re
 		req.URL.RawQuery = q.Encode()
 	}
 	req.Header.Set("CSRF-Token", c.getCSRFToken())
-	resp, err := c.client.Do(req)
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("authorization", "Login "+token)
+	resp, err := c.Client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("delete request failed: %w", err)
 	}
@@ -208,6 +208,8 @@ func (c *CTClient) NewfileUploadRequest(uri string, params map[string]string, pa
 	}
 	req, err := http.NewRequest("POST", uri, body)
 	req.Header.Set("CSRF-Token", c.getCSRFToken())
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("authorization", "Login "+token)
 	req.Header.Add("Content-Type", writer.FormDataContentType())
 	log.Println(req.Header)
 	// log.Println(body)
@@ -220,15 +222,22 @@ type ChurchToolsClient interface {
 	GetRequest(url string, params map[string]string) *http.Response
 	PostRequest(url string, params map[string]string) *http.Response
 	DeleteRequest(url string, params map[string]string) (*http.Response, error)
-	Login() error
+	// Login() error
 }
 
 // Ensure CTClient implements ChurchToolsClient
 var _ ChurchToolsClient = &CTClient{}
 
+// SetGlobalClient sets the global CTClient instance for use across the package
+func SetGlobalClient(c *CTClient) {
+	globalCTClient = c
+}
+
 // NewClient returns a new initialized ChurchToolsClient
 func NewClient() ChurchToolsClient {
 	c := &CTClient{}
+	c.setupClient()
 	c.Login()
+	SetGlobalClient(c)
 	return c
 }
