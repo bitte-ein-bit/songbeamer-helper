@@ -38,10 +38,11 @@ func uploadToChurchTools(isAutoUpload bool) {
 	// 	log.SetLevel(log.Debug)
 	// }
 	log.Infof("Synchronisiere nach ChurchTools")
-	songs, err := churchtools.GetSongs()
+	client := churchtools.NewClient()
+	songs, err := churchtools.GetSongs(client)
 	util.CheckForError(err)
 
-	_ = processSongbeamerSongs(songs, isAutoUpload)
+	_ = processSongbeamerSongs(songs, isAutoUpload, client)
 	log.Infof("fertig")
 }
 
@@ -68,7 +69,7 @@ func filterSongs(songs map[string]churchtools.Song, filterField string, search i
 	return churchtools.Song{}
 }
 
-func processSongbeamerSongs(songs map[string]churchtools.Song, isAutoUpload bool) map[string]churchtools.Song {
+func processSongbeamerSongs(songs map[string]churchtools.Song, isAutoUpload bool, client churchtools.ChurchToolsClient) map[string]churchtools.Song {
 	path := viper.GetString("songspath")
 	duplicates := viper.GetString("duplicates")
 
@@ -116,16 +117,20 @@ func processSongbeamerSongs(songs map[string]churchtools.Song, isAutoUpload bool
 			}
 			log.Infof("Lied hat ChurchTools ID %d, Arrangement anhand Dateiname ist %s, Arrangement anhand ID ist %s", song.ChurchToolsID, a, song.ChurchToolsArrangement)
 
+			log.Debugf("Suche nach Arrangement '%s' in %d Arrangements", a, len(ctSong.Arrangements))
 			var arrangement churchtools.SongArrangement
 			for _, arrange := range ctSong.Arrangements {
-				if arrange.Bezeichnung == a {
+				arrangementName := arrange.GetName()
+				log.Debugf("Vergleiche '%s' == '%s' (match: %v)", arrangementName, a, arrangementName == a)
+				if arrangementName == a {
 					log.Debugf("Arrangement found, checking if newer")
 					arrangement = arrange
 				}
 			}
 			if arrangement.ID == 0 {
 				log.Infof("Scheinbar wurde die Datei zu einem neuen Arrangement '%s' umbenannt", a)
-				arrangementID, err := ctSong.AddArrangement(a)
+				log.Debugf("Verfügbare Arrangements: %v", ctSong.Arrangements)
+				arrangementID, err := ctSong.AddArrangement(client, a)
 				util.CheckForError(err)
 				log.Debugf("New arrangement ID: %d", arrangementID)
 				arrangement = churchtools.SongArrangement{

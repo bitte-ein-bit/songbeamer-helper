@@ -35,7 +35,6 @@ func (m *MockChurchToolsClient) PostRequest(url string, params map[string]string
 	return args.Get(0).(*http.Response)
 }
 
-
 func TestGetEvents(t *testing.T) {
 
 	t.Run("should fetch events for the specified date range", func(t *testing.T) {

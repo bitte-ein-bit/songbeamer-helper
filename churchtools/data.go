@@ -76,6 +76,10 @@ type addResponse struct {
 	ID      int    `json:"data,string"`
 }
 
+type addArrangementResponse struct {
+	Data APISongArrangement `json:"data"`
+}
+
 type getSongResponse struct {
 	Data APISong `json:"data"`
 }

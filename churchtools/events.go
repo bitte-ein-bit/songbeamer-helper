@@ -22,7 +22,7 @@ func GetEvents(client ChurchToolsClient, daysInFuture, daysInPast int) []Event {
 	data, err := io.ReadAll(resp.Body)
 
 	if err != nil {
-		log.Fatalf("%s", err)
+		log.Fatalf("[GetEvents] %s", err)
 	}
 	r := getEventsResponse{}
 	jsonErr := json.Unmarshal(data, &r)

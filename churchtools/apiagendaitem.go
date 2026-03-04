@@ -40,11 +40,11 @@ func (i *APIAgendaItem) ToSongbeamerItem() (text string) {
 		color = "33023"
 	case "intro":
 		color = "clBlack"
-		extra += fmt.Sprint("      FileName = 'C:\\Program Files (x86)\\SongBeamer\\Intro.mp3'\n")
+		extra += "      FileName = 'C:\\Program Files (x86)\\SongBeamer\\Intro.mp3'\n"
 	case "kinder":
 		color = "clBlack"
-		extra += fmt.Sprint("      FileName = 'C:\\Program Files (x86)\\SongBeamer\\Kinder.mp3'\n")
-    default:
+		extra += "      FileName = 'C:\\Program Files (x86)\\SongBeamer\\Kinder.mp3'\n"
+	default:
 		color = "clBlue"
 	}
 	text += fmt.Sprintf("      Caption = '%s'\n      Color = %s\n%s    end", strings.Replace(caption, "'", "'#39'", -1), color, extra)
