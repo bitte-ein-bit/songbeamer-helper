@@ -12,3 +12,4 @@ songs-edited
 .googlecloud.json
 *.log
 cov.out
+mise.local.toml
